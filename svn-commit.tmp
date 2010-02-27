@@ -1,0 +1,4 @@
+Initial commit of capablanca.  The input and nearest-neighbor finding routines work properly, while the process routine has an issue with MPI which causes the Turing cluster to give a timeout error.
+--This line, and those below, will be ignored--
+
+A    capablanca
