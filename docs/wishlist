@@ -1,0 +1,12 @@
+single-processor mode (MPI_PROC_NULL)
+incorporate better UPRNG
+output types beyond xyz
+track dissolved surface as well (for redeposition)
+allow for defects + defect generator (incl. screw)
+dynamic findMaxNN()
+report nu_+ and nu_-
+set edges to 12 automatically
+validation of ergodicity of rng
+dynamic temperature support
+allow MD/MC particle motion w/ periodic recalculation of nn
+state dump/load for large simulations
