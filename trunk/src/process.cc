@@ -1,5 +1,4 @@
 //  Another thing I'd like to fix is the logick of this file and process_helpers.h and process.h.
-//  TODO:  work on validating process()
 #include <math.h>
 #include <iostream>
 #include <omp.h>
@@ -15,7 +14,6 @@ using namespace std;
 
 extern bool verbose;
 
-//extern uint         receiveCount; //*** extern?
 extern ParticleMap  pmap;
 
 extern uint         numStates,
@@ -57,7 +55,9 @@ static inline double myrand()
 inline void updateState(ParticlePtr ptr)
 {   if(myrand() < prob[ptr->state][accumulate(ptr->countN.begin(), ptr->countN.begin() + dissolnStates, 0)])
     {   //cout << rank << ": " << ptr->id << " from " << ptr->state << " to " << rxn[ptr->state].newState << endl; //***
-        ptr->state = rxn[ptr->state].newState; } }
+        ptr->state = rxn[ptr->state].newState;
+        /*if(ptr->onBoundary) updateOnBoundary(ptr);
+        else updateOffBoundary(ptr);*/ } }
 
 /*  calcProbs()
  *  
@@ -112,48 +112,23 @@ void process()
     if (verbose) cout << rank << ":  Surface found with " << surface.size()
                       << " elements." << endl;
     
-    for(uint iter = 0; iter < tmax; iter++)
+    for(uint t = 0; t < tmax; t++)
     {   resetVariables();
         
-        for(uint i = 0; i < surface.size(); i++)
-        {   ParticlePtr ptr = surface[i];
-            updateState(ptr);
-            if (hasDissolved(ptr))
-            {   cerr << rank << ": " << ptr->id << " dissolved;" << endl; //***
-                if(ptr->onBoundary) processOnBoundaryDissolved(ptr);
-                else processNotOnBoundaryDissolved(ptr); } }
-        
-        //***
-        #ifdef PROC_DEBUG
-        cerr<<"rank: "<<rank<<" now sending/receiving"<<endl;
-        #endif
+        for(vector<ParticlePtr>::iterator iter = surface.begin(); iter != surface.end(); iter++)
+        {   updateState(*iter); }
         
         exchangeInterNodeChanges();
-        
-        #ifdef PROC_DEBUG
-        cerr<<"rank: "<<rank<<" now updating local"<<endl;
-        #endif
-        
         updateLocal();
-        
-        #ifdef PROC_DEBUG
-        cerr<<"rank: "<<rank<<" now updating external"<<endl;
-        #endif
-        
         updateExternal();
-        
-        #ifdef PROC_DEBUG
-        cerr<<"rank: "<<rank<<" now packing surface"<<endl;
-        #endif
-        
         packSurface();
         
-        //if (!(iter % outputInterval)) collateStatistics(iter);
+        //if (!(t % outputInterval)) collateStatistics(iter);
         
         MPI_Barrier(MPI_COMM_WORLD);    //  Unfortunately, we must remain synchronous.
-        /*if (verbose && !rank)
-        {   cout << 100 * (double) iter / (double) tmax << "% complete." << endl;
-            cout.flush(); }*/ }
+        if (verbose && !(t % outputInterval) && !rank)
+        {   cout << 100 * (double) t / (double) tmax << "% complete." << endl;
+            cout.flush(); } }
     
     //collectStatFiles();
 }
