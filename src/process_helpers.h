@@ -1,3 +1,8 @@
+/*
+The chief problem right now is that only when a particle dissolves is its state
+abroad updated.  We need a plan to update the information every time a particle
+changes at all instead.
+*/
 #ifndef _PROCESS_HELPERS_H
 #define _PROCESS_HELPERS_H
 
@@ -47,6 +52,9 @@ static coord_t  maxCoord;
 static coord_t  globalMaxCoord;
 static uint     NUM_OF_NEIGHBORS;
 
+static uint    *recvCountList,
+               *sendCountList;
+
 /*  hasDissolved(ParticlePtr ptr)
  *  
  *  Determine if the particle indicated by ptr has dissolved.
@@ -71,11 +79,11 @@ inline void findSurface()
     {   if(globalMaxCoord - iter->second.z <= SURFACE_CUTOFF) surface.push_back(&(iter->second)); }
 }
 
-/*  processOnBoundaryDissolved(ParticlePtr ptr)
+/*  updateOnBoundary(ParticlePtr ptr)
  *  
  *  Add the particle indicated by ptr to the interNodeChangesBuffer.
  */
-inline void processOnBoundaryDissolved(ParticlePtr ptr)
+inline void updateOnBoundary(ParticlePtr ptr)
 {   uint initialN = accumulate(ptr->initialN.begin(), ptr->initialN.begin() + dissolnStates, 0);
     memcpy(&(interNodeChangesBuffer[interNodeChangesBufferSize]),
            ptr->getNList(), initialN * sizeof(id_t));
@@ -84,11 +92,11 @@ inline void processOnBoundaryDissolved(ParticlePtr ptr)
            ptr->getNList(), initialN * sizeof(id_t));
     interNodeStatesBufferSize += initialN; }
 
-/*  processNotOnBoundaryDissolved(ParticlePtr ptr)
+/*  updateOffBoundary(ParticlePtr ptr)
  *
  *  Add the particle indicated by ptr to the internalChangesBuffer.
  */
-inline void processNotOnBoundaryDissolved(ParticlePtr ptr)
+inline void updateOffBoundary(ParticlePtr ptr)
 {   internalChangesBuffer.push_back(ptr);
     States st;
     st.oldState = ptr->state;   st.newState = ptr->state; //*** based on rule transition?
@@ -125,7 +133,11 @@ inline void send(const int dest)
  *  ones. *** make non-blocking (issend?)
  */
 inline void exchangeInterNodeChanges()
-{   if(rank % 2)
+{   
+    /*MPI_Alltoall(sendCountList, size, MPI_INT, recvCountList, size, MPI_INT,
+                 MPI_COMM_WORLD);*/
+    
+    if(rank % 2)
     {   recv();
         send(rank - 1);
         if(rank < size - 1)
