@@ -38,16 +38,16 @@ void dumpParticles()
     sprintf(statfilename, "%d.txt", rank);
     statfile.open(statfilename, fstream::out);
     if (!statfile)
-    {   cerr << "Unable to create output file " << statfilename << "\n";
+    {   cerr << "⚠ Unable to create output file " << statfilename << endl;
         MPI_Abort(MPI_COMM_WORLD, EXIT_FAILURE); }
+    
     statfile << particles.size() << endl;
     for (int i = 0; i < particles.size(); i++)
     {   statfile << particles[i].id << "\t"
-                 << particles[i].x << "\t"
-                 << particles[i].y << "\t"
-                 << particles[i].z << endl; }
-    statfile.close();
-}
+                 << particles[i].x  << "\t"
+                 << particles[i].y  << "\t"
+                 << particles[i].z  << endl; }
+    statfile.close(); }
 
 int main(int argc, char** argv)
 {   //  Perform MPI-required initialization.
@@ -56,36 +56,32 @@ int main(int argc, char** argv)
     MPI_Comm_size(MPI_COMM_WORLD, &size);
     
     //  Load arguments and initialize parameters.
-    double ioTime = -MPI_Wtime();
     parseInput(argc, argv);
     loadConfig();
     loadRules();
-    ioTime += MPI_Wtime();
-    cout << rank << ":  I/O timer:  " << ioTime << endl;
-    MPI_Barrier(MPI_COMM_WORLD);
     
     //  Read in data for each processor.
     double readTime = -MPI_Wtime();
     readXYZ();
-    readTime += MPI_Wtime();
-    cout << rank << ":  readXYZ timer:  " << readTime << endl;
     MPI_Barrier(MPI_COMM_WORLD);
+    readTime += MPI_Wtime();
+    if (!rank)  cout << "◔ Particles read in " << readTime << " s.\n";
     
     //  Calculate nearest neighbors of each particle.
     double nnTime = -MPI_Wtime();
     calculateNeighbors();
-    nnTime += MPI_Wtime();
-    cout << rank << ":  Neighbor timer:  " << nnTime << endl;
     MPI_Barrier(MPI_COMM_WORLD);
+    nnTime += MPI_Wtime();
+    if (!rank)  cout << "◑ Nearest neighbors calculated in " << nnTime << " s.\n";
     
     //  Perform system calculation.
     double procTime = -MPI_Wtime();
     process();
-    procTime += MPI_Wtime();
-    cout << "Rank " << rank << ":  Process timer:  " << procTime << endl;
     MPI_Barrier(MPI_COMM_WORLD);
+    procTime += MPI_Wtime();
+    if (!rank)  cout << "◕ Processing complete in " << procTime << " s.\n";
     
     //  Finalize and exit.
     MPI_Finalize();
-    return EXIT_SUCCESS;
-}
+    return EXIT_SUCCESS; }
+

@@ -6,7 +6,6 @@ changes at all instead.
 #ifndef _PROCESS_HELPERS_H
 #define _PROCESS_HELPERS_H
 
-#include <omp.h>
 #include <mpi.h>
 #include <vector>
 #include <map>
@@ -52,9 +51,6 @@ static coord_t  maxCoord;
 static coord_t  globalMaxCoord;
 static uint     NUM_OF_NEIGHBORS;
 
-static uint    *recvCountList,
-               *sendCountList;
-
 /*  hasDissolved(ParticlePtr ptr)
  *  
  *  Determine if the particle indicated by ptr has dissolved.
@@ -70,14 +66,13 @@ inline bool hasDissolved(ParticlePtr ptr)
 inline void findSurface()
 {   //  Determine local (and thence global) maximum z-coordinates.
     maxCoord = -1e8;
-    for(pmapiter iter = pmap.begin(); iter != pmap.end(); iter++)
-    {   if(iter->second.z > maxCoord)   maxCoord = iter->second.z; }
+    for (pmapiter iter = pmap.begin(); iter != pmap.end(); iter++)
+    {   if (iter->second.z > maxCoord)   maxCoord = iter->second.z; }
     MPI_Allreduce(&maxCoord, &globalMaxCoord, 1, MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD);
     
     //  Add particles within SURFACE_CUTOFF of the top to the surface.
-    for(pmapiter iter = pmap.begin(); iter != pmap.end(); iter++)
-    {   if(globalMaxCoord - iter->second.z <= SURFACE_CUTOFF) surface.push_back(&(iter->second)); }
-}
+    for (pmapiter iter = pmap.begin(); iter != pmap.end(); iter++)
+    {   if (globalMaxCoord - iter->second.z <= SURFACE_CUTOFF) surface.push_back(&(iter->second)); } }
 
 /*  updateOnBoundary(ParticlePtr ptr)
  *  
@@ -85,6 +80,8 @@ inline void findSurface()
  */
 inline void updateOnBoundary(ParticlePtr ptr)
 {   uint initialN = accumulate(ptr->initialN.begin(), ptr->initialN.begin() + dissolnStates, 0);
+    //id_t*nnList   = new id_t[maxNN];
+    //nnList = ptr->getNList();
     memcpy(&(interNodeChangesBuffer[interNodeChangesBufferSize]),
            ptr->getNList(), initialN * sizeof(id_t));
     interNodeChangesBufferSize += initialN;
@@ -99,67 +96,57 @@ inline void updateOnBoundary(ParticlePtr ptr)
 inline void updateOffBoundary(ParticlePtr ptr)
 {   internalChangesBuffer.push_back(ptr);
     States st;
-    st.oldState = ptr->state;   st.newState = ptr->state; //*** based on rule transition?
+    st.oldState = ptr->state;
+    st.newState = ptr->state; //*** based on rule transition?
     internalStatesBuffer.push_back(st); }
 
-/*  recv()
+/*  recv(const int src)
  *
- *  Receive all changes from other processors.
+ *  Receive all changes from src.
  */
-inline void recv()
+inline void recv(const int src)
 {   static MPI_Status status;
-    MPI_Recv(&(receiveBuffer[receiveCount]), MAX_ARRAY_SIZE, MPI_UNSIGNED,
-             MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_COMM_WORLD, &status);
-    receiveCount += status.MPI_TAG; //  The tag is the number of particles sent.
-}
+    /*MPI_Recv(&(receiveBuffer[receiveCount]), MAX_ARRAY_SIZE, MPI_UNSIGNED, src,
+             MPI_ANY_TAG, MPI_COMM_WORLD, &status);*/
+    //  Retrieve the number of particles sent from the message tag.
+    receiveCount += status.MPI_TAG; }
 
 /*  send(const int dest)
  *  
- *  Send all changes for dest to dest.
+ *  Send all changes to dest.
  */
 inline void send(const int dest)
 {   static id_t sendBuffer[MAX_ARRAY_SIZE];
-    uint sendBufferSize = 0;
+    uint        sendBufferSize = 0;
     memcpy(&(sendBuffer[sendBufferSize]), &(interNodeChangesBuffer[0]),
            interNodeChangesBufferSize * sizeof(id_t));
     sendBufferSize += interNodeChangesBufferSize;
-    MPI_Send(sendBuffer, sendBufferSize, MPI_UNSIGNED,
-             dest, sendBufferSize, MPI_COMM_WORLD);
-}
+    /*MPI_Isend(sendBuffer, sendBufferSize, MPI_UNSIGNED, dest,
+              sendBufferSize, MPI_COMM_WORLD);*/ }
 
 /*  exchangeInterNodeChanges()
  *  
  *  Initiate the exchange of inter-node data by even processors first, then odd
- *  ones. *** make non-blocking (issend?)
+ *  ones.
  */
 inline void exchangeInterNodeChanges()
-{   
-    /*MPI_Alltoall(sendCountList, size, MPI_INT, recvCountList, size, MPI_INT,
-                 MPI_COMM_WORLD);*/
+{   int rankLeft, rankRight;
     
-    if(rank % 2)
-    {   recv();
-        send(rank - 1);
-        if(rank < size - 1)
-        {   recv();
-            send(rank + 1); } }
-    else
-    {   if(rank < size - 1)
-        {   send(rank + 1);
-            recv(); }
-        if(rank > 0)
-        {   send(rank - 1);
-            recv(); } } }
+    if (rank == size - 1)   rankRight = MPI_PROC_NULL;
+    else                    rankRight = rank + 1;
+    if (rank == 0)          rankLeft  = MPI_PROC_NULL;
+    else                    rankLeft  = rank - 1;
+    
+    send(rankRight);
+    recv(rankRight);
+    send(rankLeft);
+    recv(rankLeft); }
 
 /*  placeOnSurface(Particle& p)
  *  
  *  Add a particle to the surface and affect the number of nearest neighbors
  *  accordingly. *** shouldn't do the latter here w/o more info (who dissolved?)
  */
-/***inline void placeOnSurface(Particle& p)
-{   if (!hasDissolved(&p))
-    {   p.countN--;
-        if (!p.onSurface) { surface.push_back(&p); p.onSurface = true; } } }*/
 inline void placeOnSurface(Particle& p)
 {   if (!hasDissolved(&p) && !p.onSurface)
     {   surface.push_back(&p);
@@ -170,8 +157,7 @@ inline void placeOnSurface(Particle& p)
  *  Update the state of the neighbors of each local dissolved particle.
  */
 inline void updateLocal()
-{   uint    count = 0,
-            initialN;
+{   uint count = 0, initialN;
     
     for (uint i = 0; i < internalChangesBuffer.size(); i++)
     {   initialN = accumulate(internalChangesBuffer[i]->initialN.begin(),
@@ -182,20 +168,16 @@ inline void updateLocal()
             {   placeOnSurface(iter->second);
                 iter->second.countN[internalStatesBuffer[i].oldState]--;
                 iter->second.countN[internalStatesBuffer[i].newState]++;
-                count++; } } }  //***
-    #ifdef PROC_DEBUG
-    cerr<<"rank: "<<rank<<" updated "<<count<<" thread internal particles"<<endl;
-    #endif
-}
+                count++; } } } }
 
 /*  updateExternal()
  *
  *  Update the state of the neighbors of each remote dissolved particle.
  */
 inline void updateExternal()
-{   uint count=0; //***
+{   uint count = 0; //***
     if (verbose && count > 0) cout << rank << ": received " << receiveCount
-                                   << " external particles." << endl;
+                                   << " external particles.\n";
     
     for (uint i = 0; i < receiveCount; i++)
     {   pmapiter iter = pmap.find(receiveBuffer[i]);
@@ -203,11 +185,7 @@ inline void updateExternal()
         {   placeOnSurface(iter->second);
             iter->second.countN[interNodeStatesBuffer[i].oldState]--;
             iter->second.countN[interNodeStatesBuffer[i].newState]++;
-            count++; } }  //***
-    #ifdef PROC_DEBUG
-    cerr<<"rank: "<<rank<<" updated "<<count<<" external particles"<<endl;
-    #endif
-}
+            count++; } } }
 
 #endif  /* _PROCESS_HELPERS_H */
 
