@@ -1,7 +1,6 @@
 //  Another thing I'd like to fix is the logick of this file and process_helpers.h and process.h.
 #include <math.h>
 #include <iostream>
-#include <omp.h>
 #include <cstdio>
 #include <cstdlib>
 #include <vector>
@@ -53,11 +52,10 @@ static inline double myrand()
  *  altered by the currently applicable rule. *** this needs to take into account more possible combinations
  */
 inline void updateState(ParticlePtr ptr)
-{   if(myrand() < prob[ptr->state][accumulate(ptr->countN.begin(), ptr->countN.begin() + dissolnStates, 0)])
-    {   //cout << rank << ": " << ptr->id << " from " << ptr->state << " to " << rxn[ptr->state].newState << endl; //***
-        ptr->state = rxn[ptr->state].newState;
-        /*if(ptr->onBoundary) updateOnBoundary(ptr);
-        else updateOffBoundary(ptr);*/ } }
+{   if (myrand() < prob[ptr->state][accumulate(ptr->countN.begin(), ptr->countN.begin() + dissolnStates, 0)])
+    {   ptr->state = rxn[ptr->state].newState;
+        if (ptr->onBoundary) updateOnBoundary(ptr);
+        else updateOffBoundary(ptr); } }
 
 /*  calcProbs()
  *  
@@ -85,20 +83,14 @@ inline void calcProbs()
 void packSurface()
 {   uint count = 0;
     
-    for(uint i = 0; i < surface.size(); i++)
-    {   if(hasDissolved(surface[i])) // && accumulate(surface[i]->countN.begin(), surface[i]->countN.begin() + dissolnStates, 0) < 1
+    for (uint i = 0; i < surface.size(); i++)
+    {   if (hasDissolved(surface[i])) // && accumulate(surface[i]->countN.begin(), surface[i]->countN.begin() + dissolnStates, 0) < 1
         {   count++;
-            if(i == surface.size() - 1)
+            if (i == surface.size() - 1)
             {   surface.pop_back(); }
             else
             {   surface[i] = surface.back();
-                surface.pop_back(); }
-        }
-    }
-    //***
-    if (verbose && count > 0) cout << "rank: " << rank << " packed " << count
-                                   << " particles" << endl;
-}
+                surface.pop_back(); } } } }
 
 /*  process()
  *  
@@ -107,15 +99,12 @@ void packSurface()
  */
 void process()
 {   calcProbs();
-    
     findSurface();
-    if (verbose) cout << rank << ":  Surface found with " << surface.size()
-                      << " elements." << endl;
     
-    for(uint t = 0; t < tmax; t++)
+    for (uint t = 0; t < tmax; t++)
     {   resetVariables();
         
-        for(vector<ParticlePtr>::iterator iter = surface.begin(); iter != surface.end(); iter++)
+        for (vector<ParticlePtr>::iterator iter = surface.begin(); iter != surface.end(); iter++)
         {   updateState(*iter); }
         
         exchangeInterNodeChanges();
@@ -127,7 +116,7 @@ void process()
         
         MPI_Barrier(MPI_COMM_WORLD);    //  Unfortunately, we must remain synchronous.
         if (verbose && !(t % outputInterval) && !rank)
-        {   cout << 100 * (double) t / (double) tmax << "% complete." << endl;
+        {   cout << "  " << 100 * (double) t / (double) tmax << "% complete.\n";
             cout.flush(); } }
     
     //collectStatFiles();

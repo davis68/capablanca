@@ -56,7 +56,7 @@ void loadRules()
     ruleFile.open(ruleFileName, ifstream::in);
     if (!ruleFile)
     {   char err[64];
-        sprintf(err, "Unable to load file %s", ruleFileName);
+        sprintf(err, "⚠ Unable to load file %s", ruleFileName);
         error(err); }
     
     //  Set number of rules and states.
@@ -84,7 +84,7 @@ void loadConfig()
     confFile.open(confFileName, ifstream::in);
     if (!confFile)
     {   char err[64];
-        sprintf(err, "Unable to load file %s", confFileName);
+        sprintf(err, "⚠ Unable to load file %s", confFileName);
         error(err); }
     
     //  Get temperature and other parameters from input file.
@@ -193,7 +193,7 @@ void parseInput(const int argc, char** argv)
                     
                 default:    //  Unknown parameter encountered.
                     char err[64];
-                    sprintf(err, "Unknown input parameter %d", val[0]);
+                    sprintf(err, "⚠ Unknown input parameter %d", val[0]);
                     error(err);
                     break;
             }

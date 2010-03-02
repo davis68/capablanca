@@ -1,6 +1,9 @@
 all: main.o globals.o readxyz.o nn.o process.o error.o input.o
 	mpicxx -o capablanca main.o globals.o readxyz.o nn.o process.o error.o input.o
 
+optimized:
+	mpicxx -Os -o capablanca main.o globals.o readxyz.o nn.o process.o error.o input.o
+
 globals.o: globals.cc
 	mpicxx -c globals.cc
 

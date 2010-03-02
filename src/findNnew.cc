@@ -298,8 +298,8 @@ void writeCell(Cell& cell1)
  *  Calculate the number of nearest neighbors of each particle.
  */
 void calculateNeighbors()
-{   createCells();          if (verbose && !rank) cout << "Cell division complete." << endl;
-    findLocalNeighbors();   if (verbose && !rank) cout << "Local neighbors found." << endl;
-    findRemoteNeighbors();  if (verbose && !rank) cout << "Remote neighbors found." << endl;
-    fillMap();              if (verbose && !rank) cout << pmap.size() << " particles inserted into map." << endl; }
+{   createCells();          if (verbose && rank == 1) cout << "  Cell division complete." << endl;
+    findLocalNeighbors();   if (verbose && rank == 1) cout << "  Local neighbors found." << endl;
+    findRemoteNeighbors();  if (verbose && rank == 1) cout << "  Remote neighbors found." << endl;
+    fillMap(); }
 

@@ -117,7 +117,7 @@ void readXYZ()
     xyz_file = fopen(dataFileName, "r");
     if (xyz_file == NULL)
     {   char err[64];
-        sprintf(err, "Unable to open file %s", dataFileName);
+        sprintf(err, "⚠ Unable to open file %s", dataFileName);
         error(err);
         return; }
     
@@ -239,9 +239,9 @@ void readXYZ()
     MPI_Allreduce(&localParticleCount, &totalParticleCount, 1,
                   MPI_INT, MPI_SUM, MPI_COMM_WORLD);
     if (verbose && !rank && (initialTotalParticles != totalParticleCount))
-        cout << "Total particles expected:  " << initialTotalParticles
-             << "; total found:  " << totalParticleCount << endl;
-    //assert(totalParticleCount == initialTotalParticles);
+        cout << "⚠ " << initialTotalParticles << " particles expected; "
+             << totalParticleCount << " found.\n";
+    //assert(totalParticleCount == initialTotalParticles); ***
     
     //  Assign particle IDs.
     int *particleCount; particleCount = new int[size];
