@@ -30,18 +30,9 @@ extern uint        *oldCount;
 extern uint        *count;
 extern double      *rates;
 
-/*  resetVariables()
- *
- *  Reset the values of variables unique to each iteration.
- */
-inline void resetVariables()
-{   interNodeChangesBufferSize = 0;
-    receiveCount = 0;
-    internalChangesBuffer.clear(); }
-
 /*  myrand()
  *  
- *  Return a uniform random number. *** requires validation of ergodicity
+ *  Return a uniform random number.
  */
 static inline double myrand()
 {   return (double) rand() / (double) RAND_MAX; }
@@ -49,13 +40,14 @@ static inline double myrand()
 /*  updateState(ParticlePtr ptr)
  *  
  *  Calculate the probability that the particle indicated by ptr has its state
- *  altered by the currently applicable rule. *** this needs to take into account more possible combinations
+ *  altered by the currently applicable rule.
  */
 inline void updateState(ParticlePtr ptr)
 {   if (myrand() < prob[ptr->state][accumulate(ptr->countN.begin(), ptr->countN.begin() + dissolnStates, 0)])
     {   ptr->state = rxn[ptr->state].newState;
+        //***cerr << rank << "->" << ptr->id <<  endl;
         if (ptr->onBoundary) updateOnBoundary(ptr);
-        else updateOffBoundary(ptr); } }
+        else                 updateOffBoundary(ptr); } }
 
 /*  calcProbs()
  *  

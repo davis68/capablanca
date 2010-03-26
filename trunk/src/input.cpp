@@ -30,7 +30,11 @@ extern int      outputInterval,
 extern int      rank;
 
 void outputHelp()
-{   cout << "Usage:  " << progName << " [OPTION]..." << endl << endl
+{   cout << "capablanca is a state transition machine for simulating electrochemical" << endl
+         << "reactions, especially as a function of nearest neighbors.  It is" << endl
+         << "designed for use on a cluster supporting MPI, and it is recommended" << endl
+         << "that the terminal support Unicode UTF-8 or higher." << endl << endl
+         << "Usage:  " << progName << " [OPTION]..." << endl << endl
          << "  -c CONFIG.CFG     specify configuration file;" << endl
          << "  -h                display this help message;" << endl
          << "  -E φ              specify potential φ;" << endl

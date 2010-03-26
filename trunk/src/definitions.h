@@ -17,7 +17,7 @@ typedef uint    state_t;                // the type used for a particle's curren
 #define DATA_FILENAME   "particles.xyz" // the file into which data is generated
 
 //  Calculation.
-#define MAX_ARRAY_SIZE      1500000     // the maximum size of an array to be communicated between two CPUs ***nonoptimal?
+#define MAX_ARRAY_SIZE  2000000 // the maximum size of an array to be communicated between two CPUs ***nonoptimal?
 #define MAX_NEIGHBORS       12          // the maximum number of neighbors a particle can have
 #define NUM_OF_THREADS      2           // the number of threads per node
 #define DISSOLUTION_STATE   6           // the state which represents complete dissolution
