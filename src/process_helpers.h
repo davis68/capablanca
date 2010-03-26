@@ -1,7 +1,14 @@
 /*
 The chief problem right now is that only when a particle dissolves is its state
 abroad updated.  We need a plan to update the information every time a particle
-changes at all instead.
+changes at all instead.  States is not currently transferred.
+
+process_helpers.h uses MPI buffered send mode, and so is incompatible with other
+functions which may also use that mode.
+
+The send/recv overflows the buffer still.
+
+The last use of static is as a global variable inside a file of code. In this case, the use of static indicates that source code in other files that are part of the project cannot access the variable. Only code inside the single file can see the variable. (It's scope -- or visibility -- is limited to the file.) This technique can be used to simulate object oriented code because it limits visibility of a variable and thus helps avoid naming conflicts. This use of static is a holdover from C.
 */
 #ifndef _PROCESS_HELPERS_H
 #define _PROCESS_HELPERS_H
@@ -26,14 +33,14 @@ extern uint dissolnStates;
 extern int  rank,
             size;
 
-extern ParticleMap          pmap;
+extern ParticleMap  pmap;
 
 struct States
 {   state_t oldState, newState; };
 
 typedef ParticleMap::iterator pmapiter;
 
-static vector<ParticlePtr>  surface;
+vector<ParticlePtr> surface;
 
 static id_t     interNodeChangesBuffer[MAX_ARRAY_SIZE]; //*** best approach?
 static uint     interNodeChangesBufferSize;
@@ -44,19 +51,13 @@ static id_t     interNodeSendBuffer[MAX_ARRAY_SIZE];
 static vector<ParticlePtr>  internalChangesBuffer;
 static vector<States>       internalStatesBuffer;
 
-static id_t receiveBuffer[MAX_ARRAY_SIZE];
-static uint receiveCount;
+static coord_t      maxCoord;
+static coord_t      globalMaxCoord;
 
-static coord_t  maxCoord;
-static coord_t  globalMaxCoord;
-static uint     NUM_OF_NEIGHBORS;
-
-/*  hasDissolved(ParticlePtr ptr)
- *  
- *  Determine if the particle indicated by ptr has dissolved.
- */
-inline bool hasDissolved(ParticlePtr ptr)
-{   return (ptr->state >= dissolnStates); }
+static uint        *numToRecv;
+static id_t         receiveBuffer[MAX_ARRAY_SIZE];
+static uint         receiveCount;
+static MPI_Status   status;
 
 /*  findSurface()
  *  
@@ -79,15 +80,15 @@ inline void findSurface()
  *  Add the particle indicated by ptr to the interNodeChangesBuffer.
  */
 inline void updateOnBoundary(ParticlePtr ptr)
-{   uint initialN = accumulate(ptr->initialN.begin(), ptr->initialN.begin() + dissolnStates, 0);
-    //id_t*nnList   = new id_t[maxNN];
-    //nnList = ptr->getNList();
+{   uint initialNCount = accumulate(ptr->initialN.begin(),
+                                    ptr->initialN.begin() + dissolnStates, 0);
+    
     memcpy(&(interNodeChangesBuffer[interNodeChangesBufferSize]),
-           ptr->getNList(), initialN * sizeof(id_t));
-    interNodeChangesBufferSize += initialN;
-    memcpy(&(interNodeStatesBuffer[interNodeStatesBufferSize]),
-           ptr->getNList(), initialN * sizeof(id_t));
-    interNodeStatesBufferSize += initialN; }
+           ptr->getNList(), initialNCount * sizeof(id_t));
+    interNodeChangesBufferSize += initialNCount;
+    /***memcpy(&(interNodeStatesBuffer[interNodeStatesBufferSize]),
+           ptr->getNList(), initialNCount * sizeof(id_t));
+    interNodeStatesBufferSize += initialNCount;*/ }
 
 /*  updateOffBoundary(ParticlePtr ptr)
  *
@@ -105,24 +106,24 @@ inline void updateOffBoundary(ParticlePtr ptr)
  *  Receive all changes from src.
  */
 inline void recv(const int src)
-{   static MPI_Status status;
-    /*MPI_Recv(&(receiveBuffer[receiveCount]), MAX_ARRAY_SIZE, MPI_UNSIGNED, src,
-             MPI_ANY_TAG, MPI_COMM_WORLD, &status);*/
+{   if (src == MPI_PROC_NULL) return;
+    
+    MPI_Recv(receiveBuffer + receiveCount, numToRecv[src], MPI_UNSIGNED,
+             src, MPI_ANY_TAG, MPI_COMM_WORLD, &status);
     //  Retrieve the number of particles sent from the message tag.
     receiveCount += status.MPI_TAG; }
 
 /*  send(const int dest)
  *  
- *  Send all changes to dest.
+ *  Send all changes to dest.  (Note that capablanca opts to send all data to
+ *  all neighboring processes in order to not have to carry around extra data in
+ *  the Particle class.)***
  */
 inline void send(const int dest)
-{   static id_t sendBuffer[MAX_ARRAY_SIZE];
-    uint        sendBufferSize = 0;
-    memcpy(&(sendBuffer[sendBufferSize]), &(interNodeChangesBuffer[0]),
-           interNodeChangesBufferSize * sizeof(id_t));
-    sendBufferSize += interNodeChangesBufferSize;
-    /*MPI_Isend(sendBuffer, sendBufferSize, MPI_UNSIGNED, dest,
-              sendBufferSize, MPI_COMM_WORLD);*/ }
+{   if (dest == MPI_PROC_NULL) return;
+    
+    MPI_Ssend(interNodeChangesBuffer, numToRecv[rank], MPI_UNSIGNED,
+              dest, numToRecv[rank], MPI_COMM_WORLD); }
 
 /*  exchangeInterNodeChanges()
  *  
@@ -132,15 +133,41 @@ inline void send(const int dest)
 inline void exchangeInterNodeChanges()
 {   int rankLeft, rankRight;
     
+    //  Let each process know how many ids to expect to receive.
+    numToRecv   = new uint[size];
+    MPI_Allgather(&interNodeChangesBufferSize, 1, MPI_UNSIGNED,
+                  numToRecv,                   1, MPI_UNSIGNED, MPI_COMM_WORLD);
+    
+    //  Determine neighboring processors.
     if (rank == size - 1)   rankRight = MPI_PROC_NULL;
     else                    rankRight = rank + 1;
     if (rank == 0)          rankLeft  = MPI_PROC_NULL;
     else                    rankLeft  = rank - 1;
     
-    send(rankRight);
-    recv(rankRight);
-    send(rankLeft);
-    recv(rankLeft); }
+    //  Send and receive particle ids.
+    if (rank % 2)
+    {   recv(rankLeft);     send(rankRight);
+        recv(rankRight);    send(rankLeft); }
+    else
+    {   send(rankRight);    recv(rankLeft);
+        send(rankLeft);     recv(rankRight); } }
+
+/*  resetVariables()
+ *
+ *  Reset the values of variables unique to each iteration.
+ */
+inline void resetVariables()
+{   interNodeChangesBufferSize  = 0;
+    interNodeStatesBufferSize   = 0;
+    receiveCount = 0;
+    internalChangesBuffer.clear(); }
+
+/*  hasDissolved(ParticlePtr ptr)
+ *  
+ *  Determine if the particle indicated by ptr has dissolved.
+ */
+inline bool hasDissolved(ParticlePtr ptr)
+{   return (ptr->state >= dissolnStates); }
 
 /*  placeOnSurface(Particle& p)
  *  

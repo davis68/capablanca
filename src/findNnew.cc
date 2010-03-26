@@ -236,6 +236,7 @@ inline void findRemoteNeighbors()
     MPI_Request mpr1;
     
     MPI_Buffer_attach(mpi_buffer, mpi_buffer_size);
+    //*** clean up following with MPI_PROC_NULL
     if(rank > 0)
     {   getSlice(buffer, bsize, 0);
         MPI_Ibsend(buffer, bsize, MPI_DOUBLE, rank - 1,
@@ -261,6 +262,7 @@ inline void findRemoteNeighbors()
             {   for(uint z = 0; z < numCellsZ; z++)
                 {   checkNeighbors(cells[x][numCellsY - 1][z],
                                    &(buffer[i * SENT_PARTICLE_SIZE])); } } } }
+    
     MPI_Buffer_detach(mpi_buffer, &mpi_buffer_size); }
 
 /*  void fillMap()
@@ -277,22 +279,6 @@ inline void fillMap()
                     pmap.insert(pair<id_t, Particle>(p.id, p));
                     cells[x][y][z].pop_back(); } } } } }
 
-/*  void writeCell(Cell& cell1)
- *  
- *  Output the contents of a single Cell in XYZ format. ***
- */
-void writeCell(Cell& cell1)
-{   ofstream        outfile;
-    ostringstream   ss; ss << rank << "-" << cell1.size() << ".xyz";
-    outfile.open (ss.str().c_str(), ofstream::out);
-    outfile << cell1.size() << endl;
-    outfile.precision(3);
-    outfile << fixed;
-    for (uint i = 0; i < cell1.size(); i++)
-    {   outfile << cell1[i].state << "\t" << cell1[i].x << "\t"
-                << cell1[i].y << "\t" << cell1[i].z << endl; }
-    outfile.close(); }
-
 /*  void calculateNeighbors()
  *  
  *  Calculate the number of nearest neighbors of each particle.
@@ -301,5 +287,9 @@ void calculateNeighbors()
 {   createCells();          if (verbose && rank == 1) cout << "  Cell division complete." << endl;
     findLocalNeighbors();   if (verbose && rank == 1) cout << "  Local neighbors found." << endl;
     findRemoteNeighbors();  if (verbose && rank == 1) cout << "  Remote neighbors found." << endl;
-    fillMap(); }
+    fillMap();
+    
+    for (uint i = 0; i < particles.size(); i++)
+    {   if (accumulate(particles[i].countN.begin(), particles[i].countN.begin() + dissolnStates, 0) == 0) cerr << particles[i].id << "!" << endl; } //***
+     }
 
