@@ -116,6 +116,7 @@ void process()
         {   cout << "  " << 100 * (double) t / (double) tmax << "% complete.\n";
             cout.flush(); } }
     
-    if (!rank) cerr << "  Collecting & finalizing data output.\n";
-    collectStatFiles(); }
+    if (!rank)
+    {   cerr << "  Collecting & finalizing data output.\n";
+        collectStatFiles(); } }
 

@@ -16,13 +16,13 @@ typedef std::vector<double> Vector;
 typedef std::vector<Vector> Matrix;
 
 //  Input defaults.
-#define PROGRAM_VERSION "0.5.0"         // version of this code
+#define PROGRAM_VERSION "0.6"           // version of this code
 #define CONF_FILENAME   "standard.conf" // the file into which data is generated
 #define RULE_FILENAME   "rules.rs"      // the file into which data is generated
 #define DATA_FILENAME   "particles.xyz" // the file into which data is generated
 
 //  Calculation.
-#define MAX_ARRAY_SIZE  2000000 // the maximum size of an array to be communicated between two CPUs ***nonoptimal?
+#define MAX_ARRAY_SIZE  2000000         // the maximum size of an array to be communicated between two CPUs ***nonoptimal?
 #define MAX_NEIGHBORS       12          // the maximum number of neighbors a particle can have
 #define NUM_OF_THREADS      2           // the number of threads per node
 #define DISSOLUTION_STATE   6           // the state which represents complete dissolution
