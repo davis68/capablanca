@@ -1,8 +1,8 @@
-all: main.o globals.o readxyz.o nn.o process.o error.o input.o
-	mpicxx -o capablanca main.o globals.o readxyz.o nn.o process.o error.o input.o
+all: main.o globals.o readxyz.o nn.o process.o error.o input.o statistics.o
+	mpicxx -o capablanca main.o globals.o readxyz.o nn.o process.o error.o input.o statistics.o
 
 optimized:
-	mpicxx -Os -o capablanca main.o globals.o readxyz.o nn.o process.o error.o input.o
+	mpicxx -Os -o capablanca main.o globals.o readxyz.o nn.o process.o error.o input.o statistics.o
 
 globals.o: globals.cc
 	mpicxx -c globals.cc
@@ -17,7 +17,7 @@ nn.o: findNnew.cc
 	mpicxx -o nn.o -c findNnew.cc
 
 process.o: process.cc
-	mpicxx -o process.o -c process.cc
+	mpicxx -c process.cc
 
 error.o: error.cpp
 	mpicxx -c error.cpp
@@ -25,6 +25,9 @@ error.o: error.cpp
 input.o: input.cpp
 	mpicxx -c input.cpp
 
+statistics.o: statistics.cc
+	mpicxx -c statistics.cc
+
 clean:
-	rm -f *.o *.gch capablanca core*
+	rm -f *.o *.gch capablanca core* *.xyz_temp *.dat_temp
 

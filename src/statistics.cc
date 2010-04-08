@@ -8,125 +8,103 @@
 #include "error.h"
 #include "mpi.h"
 #include "particle.h"
+#include "process.h"
 #include "process_helpers.h"
 #include "statistics.h"
 
 using namespace std;
 
-extern uint numStates;
+extern bool     verbose;
+
+extern uint numStates,
+            dissolnStates,
+            maxNN;
+
+extern double   T,
+                phi;
+
 extern uint outputInterval,
             tmax;
 
 extern int  rank,
             size;
 
-extern ParticleList particles;
-extern ParticleMap  pmap[NUM_OF_THREADS];
+extern ParticleMap          pmap;
+extern vector<ParticlePtr>  surface; //***?
 
-//  Output & statistics variables.***
-extern uint   *oldCount;           //  Total particles of last step.
-extern uint   *myParticleCount;    //  Total particles this step.
-extern double *rates;              //  Rate at which each reaction is proceeding (empirical).
-extern uint    initialTotalParticles;
+//  Output & statistics variables.
+extern vector<uint>     oldParticleCount;
+extern vector<uint>     myParticleCount;
+extern vector<double>   rates;
+extern uint             initialTotalParticles;
 
 //  Output all data to a file by time step and processor.
-void outputToFile(int iter, double coverage)
+void outputToFile(int t, uint *myParticleCountArray)
 {   //  Get the total number of (non-dissolved) atoms in the system.
     uint    myAtoms = 0,
             totalAtoms = 0;
     for (uint i = 0; i < numStates; i++)
-    {   myAtoms += myParticleCount[i]; }
+    {   myAtoms += myParticleCountArray[i]; }
     MPI_Reduce(&myAtoms, &totalAtoms, 1, MPI_INT, MPI_SUM, 0, MPI_COMM_WORLD);
     
     //  Output non-dissolved particle positions to files which will later be collected.
-    fstream datafile;
-    char    datafilename[36];
-    sprintf(datafilename, "t=%d-P=%d.xyz_temp", iter, rank);
-    datafile.open(datafilename, fstream::out);
-    if (!datafile)
-    {   cerr << "Unable to create output file " << datafilename << endl;
-        MPI_Abort(MPI_COMM_WORLD, EXIT_FAILURE); }
-    if (!rank) datafile << totalAtoms << endl;
-    for (uint i = 0; i < particles.size(); i++)
-    {   if (particles[i].state != 6)
-        {   datafile << particles[i].state << "\t" << particles[i].x << "\t"
-                     << particles[i].y << "\t" << particles[i].z << endl; } }
-    datafile.close();
+    fstream outDataFile;
+    char    outDataFileName[36];
+    sprintf(outDataFileName, "t=%d-P=%d.xyz_temp", t, rank);
+    outDataFile.open(outDataFileName, fstream::out);
+    if (!outDataFile)
+    {   char err[64];
+        sprintf(err, "⚠ Unable to load file %s", outDataFileName);
+        error(err); }
+    if (!rank) outDataFile << totalAtoms << endl;
+    for (pmapiter iter = pmap.begin(); iter != pmap.end(); iter++)
+    {   if (iter->second.state < dissolnStates)
+        {   outDataFile << iter->second.state << "\t" << iter->second.x << "\t"
+                        << iter->second.y     << "\t" << iter->second.z << endl; } }
+    outDataFile.close();
     
     if (!rank)
-    {   fstream statfile;
-        char    statfilename[36];
-        sprintf(statfilename, "t=%d-P=%d.txt", iter, rank);
-        statfile.open(statfilename, fstream::out);
-        if (!statfile)
-        {   cerr << "Unable to create output file " << statfilename << "\n";
-            MPI_Abort(MPI_COMM_WORLD, EXIT_FAILURE); }
+    {   fstream statFile;
+        char    statFileName[36];
+        sprintf(statFileName, "t=%d-P=%d.dat_temp", t, rank);
+        statFile.open(statFileName, fstream::out);
+        if (!statFile)
+        {   char err[64];
+            sprintf(err, "⚠ Unable to load file %s", statFileName);
+            error(err); }
+        for (Vector::iterator iter = rates.begin(); iter != rates.end(); iter++)
+        {   statFile << *iter << ","; }
         
-        for (int i = 0; i < numStates; i++)
-        {   statfile << rates[i] << ","; }
-        statfile << "\n" << coverage << endl;
-        statfile.close(); } }
+        statFile.close(); } }
 
-void collateStatistics(int iter)
+void collateStatistics(int t)
 {   //  Calculate rates if data exist.
     for (uint i = 0; i < numStates; i++)
-    {   rates[i] = (double) myParticleCount[i] - (double) oldCount[i];
-        #ifdef STAT_DEBUG
-        cerr << "rates[" << i << "]=" << rates[i] << ";";
-        #endif
-    }
+    {   rates[i] = (double) myParticleCount[i] - (double) oldParticleCount[i]; }
     
-    //  Calculate the surface coverage of Fe(III).
-    //  Sum up all surface particles, and then divide the count of Fe(III) by that.
-    uint     mySurfaceCount = 0;
-    for(uint i = 0; i < NUM_OF_THREADS; i++)
-     mySurfaceCount += surface[i].size();
-    uint     totalSurfaceCount;
-    MPI_Reduce(&mySurfaceCount, &totalSurfaceCount, 1, MPI_UNSIGNED, MPI_SUM, 0, MPI_COMM_WORLD);
+    //  Get totals of particles stored locally.
+    myParticleCount.resize(numStates, 0);
+    for(pmapiter i = pmap.begin(); i != pmap.end(); i++)
+    {   myParticleCount[i->second.state]++; }
     
-    for(uint i = 0; i < numStates; i++) myParticleCount[i] = 0;
+    //***cerr << rank << ":  " << myParticleCount[0] << "; " << myParticleCount[1] << "; " << myParticleCount[2] << "; " << myParticleCount[3] << "; " << myParticleCount[4] << "; " << myParticleCount[5] << "; " << myParticleCount[6] << endl;
     
-    #ifdef STAT_DEBUG
-    cerr << pmap[0].size() << "::" << endl;
-    #endif
-    
-    for(uint t = 0; t < NUM_OF_THREADS; t++)
-    {   for(pmapiter i = pmap[t].begin(); i != pmap[t].end(); i++)
-        {   myParticleCount[i->second.state]++;
-            #ifdef STAT_DEBUG
-            cerr << i->second.state << " | ";
-            #endif
-        }
-    }
-    
-    #ifdef STAT_DEBUG
-    cerr << rank << ":  " << myParticleCount[0] << "; " << myParticleCount[1] << "; " << myParticleCount[2] << "; " << myParticleCount[3] << "; " << myParticleCount[4] << "; " << myParticleCount[5] << "; " << myParticleCount[6] << endl;
-    #endif
-    
-    uint totalParticleCount[numStates];
-    MPI_Reduce(myParticleCount, totalParticleCount, numStates, MPI_UNSIGNED, MPI_SUM, 0, MPI_COMM_WORLD);
-
-    uint     myFeIIICount = myParticleCount[3];
-    uint     totalFeIIICount;
-    MPI_Reduce(&myFeIIICount, &totalFeIIICount, 1, MPI_INT, MPI_SUM, 0, MPI_COMM_WORLD);
-
-    double  coverage;
-    coverage = (double) totalFeIIICount / (double) totalSurfaceCount;
-    #ifdef STAT_DEBUG
-    cerr << "rank=" << rank << "; " << totalFeIIICount << ", " << totalSurfaceCount;
-    cerr << "; coverage=" << coverage << endl;
-    #endif
-
-    //  Output to a file the system configuration.
-    outputToFile(iter, coverage);
-
-    //  Store myParticleCount in oldCount.
+    //*** do we need this?
+    uint totalParticleCountArray[numStates];
+    uint myParticleCountArray[numStates];
     for (uint i = 0; i < numStates; i++)
-    {   oldCount[i] = myParticleCount[i]; } }
+    {   myParticleCountArray[i] = myParticleCount[i]; }
+    MPI_Reduce(myParticleCountArray, totalParticleCountArray, numStates, MPI_UNSIGNED, MPI_SUM, 0, MPI_COMM_WORLD);
+    
+    //  Output to a file the system configuration.
+    outputToFile(t, myParticleCountArray);
+    
+    //  Store myParticleCount in oldCount.
+    oldParticleCount = myParticleCount; }
 
 //  Load all files for each time step and put them together into one.
 void collectStatFiles()
-{   fstream allFile;
+{   /*fstream allFile;
     char    allFileName[36];
     sprintf(allFileName, "N=%d.xyz", initialTotalParticles);
     allFile.open(allFileName, ofstream::out);
@@ -160,8 +138,6 @@ void collectStatFiles()
                 allFile << state << "\t" << x << "\t" << y << "\t" << z << endl; }
             
             inFile.close();
-            remove(inFileName);
-        }
-    }
-    allFile.close();
-}
+            remove(inFileName); } }
+    
+    allFile.close();*/ }
