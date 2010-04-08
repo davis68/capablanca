@@ -26,9 +26,10 @@ int     rank,           //  Init in main.cc main()
         size;           //  Init in main.cc main()
 
 //  Calculation variables.
-vector<vector<double> > prob;   //  Init in process.cc calcProbs()
-ParticleList    particles;      //  One vector of particles per node.
-ParticleMap     pmap;           //  One map of particles per CPU per node.
+vector<vector<double> > prob;       //  Init in process.cc calcProbs()
+ParticleList            particles;  //  Init in ***
+ParticleMap             pmap;       //  Init in ***
+vector<ParticlePtr>     surface;    //  Init in ***
 
 //  Nearest-neighbor calculation variables.
 coord_t myMinX = 0.0, myMinY = 0.0, myMinZ = 0.0,
@@ -36,8 +37,8 @@ coord_t myMinX = 0.0, myMinY = 0.0, myMinZ = 0.0,
         minY, maxY;
 
 //  Output & statistics variables.***
-uint   *oldCount;           //  Total particles of last step.
-uint   *myParticleCount;    //  Total particles this step.
-double *rates;              //  Rate at which each reaction is proceeding (empirical).
-uint    initialTotalParticles;
+vector<uint>    oldParticleCount;   //  Init in process.cc process()
+vector<uint>    myParticleCount;    //  Init in process.cc process()
+vector<double>  rates;              //  Init in process.cc process()
+uint            initialTotalParticles;
 

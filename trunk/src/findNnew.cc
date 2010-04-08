@@ -287,9 +287,5 @@ void calculateNeighbors()
 {   createCells();          if (verbose && rank == 1) cout << "  Cell division complete." << endl;
     findLocalNeighbors();   if (verbose && rank == 1) cout << "  Local neighbors found." << endl;
     findRemoteNeighbors();  if (verbose && rank == 1) cout << "  Remote neighbors found." << endl;
-    fillMap();
-    
-    for (uint i = 0; i < particles.size(); i++)
-    {   if (accumulate(particles[i].countN.begin(), particles[i].countN.begin() + dissolnStates, 0) == 0) cerr << particles[i].id << "!" << endl; } //***
-     }
+    fillMap(); }
 

@@ -65,9 +65,10 @@ struct Particle
         return nnList; }
 };
 
-typedef Particle*           ParticlePtr;
-typedef vector<Particle>    ParticleList;
-typedef map<id_t, Particle> ParticleMap;
+typedef Particle*               ParticlePtr;
+typedef vector<Particle>        ParticleList; //*** perhaps a better name?
+typedef map<id_t, Particle>     ParticleMap;
+typedef ParticleMap::iterator   pmapiter;     //*** perhaps a better name?
 
 #endif  /* _PARTICLE_H */
 

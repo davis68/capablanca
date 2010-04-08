@@ -6,14 +6,13 @@
 #include <vector>
 #include "definitions.h"
 #include "particle.h"
+#include "process.h"
 #include "process_helpers.h"
 #include "statistics.h"
 
 using namespace std;
 
 extern bool verbose;
-
-extern ParticleMap  pmap;
 
 extern uint         numStates,
                     maxNN;
@@ -25,10 +24,12 @@ extern int          outputInterval,
                     tmax;
 
 extern vector<vector<double> >  prob;
+extern ParticleMap              pmap;
+extern vector<ParticlePtr>      surface;
 
-extern uint        *oldCount;
-extern uint        *count;
-extern double      *rates;
+extern vector<uint>     oldParticleCount;
+extern vector<uint>     myParticleCount;
+extern vector<double>   rates;
 
 /*  myrand()
  *  
@@ -44,8 +45,8 @@ static inline double myrand()
  */
 inline void updateState(ParticlePtr ptr)
 {   if (myrand() < prob[ptr->state][accumulate(ptr->countN.begin(), ptr->countN.begin() + dissolnStates, 0)])
-    {   ptr->state = rxn[ptr->state].newState;
-        //***cerr << rank << "->" << ptr->id <<  endl;
+    {   //***cerr << rank << "->" << ptr->id << " from " << ptr->state << " to " << rxn[ptr->state].newState << endl;
+        ptr->state = rxn[ptr->state].newState;
         if (ptr->onBoundary) updateOnBoundary(ptr);
         else                 updateOffBoundary(ptr); } }
 
@@ -93,6 +94,10 @@ void process()
 {   calcProbs();
     findSurface();
     
+    oldParticleCount.resize(numStates, 0);
+    myParticleCount.resize(numStates, 0);
+    rates.resize(numStates, 0);
+    
     for (uint t = 0; t < tmax; t++)
     {   resetVariables();
         
@@ -104,13 +109,13 @@ void process()
         updateExternal();
         packSurface();
         
-        //if (!(t % outputInterval)) collateStatistics(iter);
-        
+        if (!(t % outputInterval)) collateStatistics(t);
         MPI_Barrier(MPI_COMM_WORLD);    //  Unfortunately, we must remain synchronous.
+        
         if (verbose && !(t % outputInterval) && !rank)
         {   cout << "  " << 100 * (double) t / (double) tmax << "% complete.\n";
             cout.flush(); } }
     
-    //collectStatFiles();
-}
+    if (!rank) cerr << "  Collecting & finalizing data output.\n";
+    collectStatFiles(); }
 

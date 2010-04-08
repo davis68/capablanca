@@ -1,6 +1,8 @@
 #ifndef _DEFINITIONS_H
 #define _DEFINITIONS_H
 
+#include <vector>
+
 typedef unsigned int    uint;
 typedef unsigned long   ulong;
 typedef unsigned short  ushort;
@@ -9,6 +11,9 @@ typedef unsigned char   byte;
 typedef uint    id_t;                   // the type used for particle ids
 typedef double  coord_t;                // the type used for particle coordinates
 typedef uint    state_t;                // the type used for a particle's current state
+
+typedef std::vector<double> Vector;
+typedef std::vector<Vector> Matrix;
 
 //  Input defaults.
 #define PROGRAM_VERSION "0.5.0"         // version of this code
@@ -34,6 +39,7 @@ typedef uint    state_t;                // the type used for a particle's curren
 //#define PROC_DEBUG
 //#define STAT_DEBUG
 
+//  System parameters.
 const double    k_B = 1.0,
                 ec = 1.0;
 

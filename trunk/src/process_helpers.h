@@ -17,6 +17,7 @@ The last use of static is as a global variable inside a file of code. In this ca
 #include <vector>
 #include <map>
 #include "particle.h"
+#include "process.h"
 #include <string.h>
 #include <cstdlib>
 #include <iostream> // debug
@@ -33,14 +34,8 @@ extern uint dissolnStates;
 extern int  rank,
             size;
 
-extern ParticleMap  pmap;
-
-struct States
-{   state_t oldState, newState; };
-
-typedef ParticleMap::iterator pmapiter;
-
-vector<ParticlePtr> surface;
+extern ParticleMap          pmap;
+extern vector<ParticlePtr>  surface;
 
 static id_t     interNodeChangesBuffer[MAX_ARRAY_SIZE]; //*** best approach?
 static uint     interNodeChangesBufferSize;

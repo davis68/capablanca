@@ -102,7 +102,7 @@ void loadConfig()
     
     uint    tmpOI;
     confFile >> tmpOI;
-    if (outputInterval != 0)  outputInterval = tmpOI;
+    if (outputInterval == 0)  outputInterval = tmpOI;
     
     uint    tmptmax;
     confFile >> tmptmax;
