@@ -87,8 +87,6 @@ void collateStatistics(int t)
     for(pmapiter i = pmap.begin(); i != pmap.end(); i++)
     {   myParticleCount[i->second.state]++; }
     
-    //***cerr << rank << ":  " << myParticleCount[0] << "; " << myParticleCount[1] << "; " << myParticleCount[2] << "; " << myParticleCount[3] << "; " << myParticleCount[4] << "; " << myParticleCount[5] << "; " << myParticleCount[6] << endl;
-    
     //*** do we need this?
     uint totalParticleCountArray[numStates];
     uint myParticleCountArray[numStates];
@@ -104,7 +102,7 @@ void collateStatistics(int t)
 
 //  Load all files for each time step and put them together into one.
 void collectStatFiles()
-{   /*fstream allFile;
+{   fstream allFile;
     char    allFileName[36];
     sprintf(allFileName, "N=%d.xyz", initialTotalParticles);
     allFile.open(allFileName, ofstream::out);
@@ -140,4 +138,4 @@ void collectStatFiles()
             inFile.close();
             remove(inFileName); } }
     
-    allFile.close();*/ }
+    allFile.close(); }

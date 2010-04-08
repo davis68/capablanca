@@ -2,8 +2,9 @@
  *  Oct 09--
  *  0.1 (ppproj2009) Initial codebase; calculates hard-coded Fe(0)-->Fe(VI)
  *      transitions; output broken.
- *  0.2 (incomplete) Added CLI parameters.
- *  0.5 (incomplete) Rewrite of basic functions for expanded rule interactions.
+ *  0.2 Added CLI parameters.
+ *  0.5 Rewrite of basic functions for expanded rule interactions.
+ *  0.6 First completely working version.
  *  TODO:  blocking into conf file?
  *  TODO:  currently the assertion that all particles are loaded fails sometimes;
  *         the nn calc needs to be validated
