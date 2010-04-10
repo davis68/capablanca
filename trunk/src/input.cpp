@@ -41,11 +41,10 @@ void outputHelp()
          << "  -i Τ              specify Τ steps between output files;" << endl
          << "  -p DATAFILE.XYZ   specify particle position file;" << endl
          << "  -r RULE_SET.RS    specify rule set file;" << endl
-         << "  -T ϑ              specify temperature ϑ;" << endl
+         << "  -T ϑ                         specify temperature ϑ;" << endl
          << "  -t τ              specify τ time steps to run;" << endl
          << "  -V                use verbose output;" << endl
-         << "  -v                display version information." << endl;
-}
+         << "  -v                display version information." << endl; }
 
 void outputVersion()
 {   cout << progName << " v" << progVers << endl; }
@@ -63,27 +62,32 @@ void loadRules()
         sprintf(err, "⚠ Unable to load file %s", ruleFileName);
         error(err); }
     
-    //  Set number of rules and states.
-    ruleFile >> numRules >> numStates >> dissolnStates;
-    rxn = new Reaction[numStates];
-    
-    //  Load parameters for each rule.
-    char    tempStr[32];
-    uint    state;
-    for (uint i = 0; i < numRules; i++)
-    {   //  Read and ignore comment explaining reaction.
-        ruleFile >> tempStr;
-        //  Input the appropriate parameters for this reaction.
-        ruleFile >> state;
-        ruleFile >> rxn[state].prefactor >> rxn[state].alpha >> rxn[state].E_s
-                 >> rxn[state].E_r >> rxn[state].z >> rxn[state].newState;
-        rxn[state].beta = 1 - rxn[state].alpha; }
-    ruleFile.close(); }
+    try
+    {   //  Set number of rules and states.
+        ruleFile >> numRules >> numStates >> dissolnStates;
+        rxn = new Reaction[numStates];
+        
+        //  Load parameters for each rule.
+        char    tempStr[32];
+        uint    state;
+        for (uint i = 0; i < numRules; i++)
+        {   //  Read and ignore comment explaining reaction.
+            ruleFile >> tempStr;
+            //  Input the appropriate parameters for this reaction.
+            ruleFile >> state;
+            ruleFile >> rxn[state].prefactor >> rxn[state].alpha >> rxn[state].E_s
+                     >> rxn[state].E_r >> rxn[state].z >> rxn[state].newState;
+            rxn[state].beta = 1 - rxn[state].alpha; }
+        ruleFile.close(); }
+    catch (...)
+    {   char err[64];
+        sprintf(err, "⚠ Rule set file %s incorrectly formatted.", ruleFileName);
+        error(err); } }
 
 /*  loadConfig()
  *  Loads the configuration file specified in confFileName.
  */
-void loadConfig()
+ void loadConfig()
 {   ifstream    confFile;
     confFile.open(confFileName, ifstream::in);
     if (!confFile)
@@ -91,26 +95,34 @@ void loadConfig()
         sprintf(err, "⚠ Unable to load file %s", confFileName);
         error(err); }
     
-    //  Get temperature and other parameters from input file.
-    double  tmpT;
-    confFile >> tmpT;
-    if (T == 0.0)   T = tmpT;
-    
-    double  tmpphi;
-    confFile >> tmpphi;
-    if (phi == 0.0) phi = tmpphi;
-    
-    uint    tmpOI;
-    confFile >> tmpOI;
-    if (outputInterval == 0)  outputInterval = tmpOI;
-    
-    uint    tmptmax;
-    confFile >> tmptmax;
-    if (tmax == 0)    tmax = tmptmax;
-    
-    confFile.close();
-}
+    try
+    {   //  Get temperature and other parameters from input file.
+        double  tmpT;
+        confFile >> tmpT;
+        if (T == 0.0)   T = tmpT;
+        
+        double  tmpphi;
+        confFile >> tmpphi;
+        if (phi == 0.0) phi = tmpphi;
+        
+        uint    tmpOI;
+        confFile >> tmpOI;
+        if (outputInterval == 0)  outputInterval = tmpOI;
+        
+        uint    tmptmax;
+        confFile >> tmptmax;
+        if (tmax == 0)    tmax = tmptmax;
+        
+        confFile.close(); }
+    catch (...)
+    {   char err[64];
+        sprintf(err, "⚠ Configuration file %s incorrectly formatted.", confFileName);
+        error(err); } }
 
+/*  parseInput(const int argc, char** argv)
+ *  
+ *  Interpret the command line input.
+ */
 void parseInput(const int argc, char** argv)
 {   confFileName= new char[32];
     ruleFileName= new char[32];
@@ -198,14 +210,13 @@ void parseInput(const int argc, char** argv)
                 default:    //  Unknown parameter encountered.
                     char err[64];
                     sprintf(err, "⚠ Unknown input parameter %d", val[0]);
+                    if (!rank) outputHelp();
+                    cout.flush();
                     error(err);
-                    break;
-            }
-            val = strtok(argv[i++], " ,.-");
-        }
-    }
+                    break; }
+            val = strtok(argv[i++], " ,.-"); } }
     
     if (!confFlag)  strcpy(confFileName, CONF_FILENAME);
     if (!ruleFlag)  strcpy(ruleFileName, RULE_FILENAME);
-    if (!dataFlag)  strcpy(dataFileName, DATA_FILENAME);
-}
+    if (!dataFlag)  strcpy(dataFileName, DATA_FILENAME); }
+

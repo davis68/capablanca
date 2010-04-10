@@ -1,23 +1,23 @@
-all: main.o globals.o readxyz.o nn.o process.o error.o input.o statistics.o
-	mpicxx -o capablanca main.o globals.o readxyz.o nn.o process.o error.o input.o statistics.o
+all: main.o globals.o readxyz.o neighbors.o process.o error.o input.o statistics.o
+	mpicxx -o capablanca main.o globals.o readxyz.o neighbors.o process.o error.o input.o statistics.o
 
-optimized:
-	mpicxx -Os -o capablanca main.o globals.o readxyz.o nn.o process.o error.o input.o statistics.o
+optimized: main.o globals.o readxyz.o neighbors.o process.o error.o input.o statistics.o
+	mpicxx -Os -o capablanca main.o globals.o readxyz.o neighbors.o process.o error.o input.o statistics.o
 
-globals.o: globals.cc
-	mpicxx -c globals.cc
+globals.o: globals.cpp
+	mpicxx -c globals.cpp
 
 main.o: main.cpp
 	mpicxx -c main.cpp
 
-readxyz.o: readxyz.cc
-	mpicxx -c readxyz.cc
+readxyz.o: readxyz.cpp
+	mpicxx -c readxyz.cpp
 
-nn.o: findNnew.cc
-	mpicxx -o nn.o -c findNnew.cc
+neighbors.o: neighbors.cpp
+	mpicxx -c neighbors.cpp
 
-process.o: process.cc
-	mpicxx -c process.cc
+process.o: process.cpp
+	mpicxx -c process.cpp
 
 error.o: error.cpp
 	mpicxx -c error.cpp
@@ -25,8 +25,8 @@ error.o: error.cpp
 input.o: input.cpp
 	mpicxx -c input.cpp
 
-statistics.o: statistics.cc
-	mpicxx -c statistics.cc
+statistics.o: statistics.cpp
+	mpicxx -c statistics.cpp
 
 clean:
 	rm -f *.o *.gch capablanca core* *.xyz_temp *.dat_temp
