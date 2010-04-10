@@ -99,7 +99,7 @@ void collateStatistics(int t)
     {   rates[i] = (double) myParticleCount[i] - (double) oldParticleCount[i]; }
     
     //  Get totals of particles stored locally.
-    myParticleCount.resize(numStates, 0);
+    myParticleCount.assign(numStates, 0);
     for(pmapiter i = pmap.begin(); i != pmap.end(); i++)
     {   myParticleCount[i->second.state]++; }
     
@@ -124,7 +124,7 @@ void collectStatFiles()
         error(err); }
     
     try
-    {   uint    totalParticles;
+    {   uint    totalParticles = 0;
         state_t state;
         coord_t x, y, z;
         fstream inFile;
