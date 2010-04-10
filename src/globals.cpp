@@ -1,3 +1,4 @@
+#include <vector>
 #include "definitions.h"
 #include "particle.h"
 

@@ -5,13 +5,8 @@
  *  0.2 Added CLI parameters.
  *  0.5 Rewrite of basic functions for expanded rule interactions.
  *  0.6 First completely working version.
- *  TODO:  blocking into conf file?
- *  TODO:  currently the assertion that all particles are loaded fails sometimes;
- *         the nn calc needs to be validated
  */
 
-#include <cstdio> //***
-#include <fstream> //***
 #include <iostream>
 #include "mpi.h"
 #include <cstdlib>
@@ -22,33 +17,12 @@
 #include "particle.h"
 #include "process.h"
 #include "readxyz.h"
+#include "statistics.h"
 
 using namespace std;
 
 extern int  rank,
             size;
-
-extern ParticleList    particles;  //  One vector of particles per node.
-extern uint numStates,      //  Init in input.cpp loadRules()
-            dissolnStates,  //  Init in input.cpp loadRules()
-            maxNN;          //  Init in input.cpp loadRules()
-
-void dumpParticles()
-{   fstream statfile;
-    char    statfilename[36];
-    sprintf(statfilename, "%d.txt", rank);
-    statfile.open(statfilename, fstream::out);
-    if (!statfile)
-    {   cerr << "⚠ Unable to create output file " << statfilename << endl;
-        MPI_Abort(MPI_COMM_WORLD, EXIT_FAILURE); }
-    
-    statfile << particles.size() << endl;
-    for (int i = 0; i < particles.size(); i++)
-    {   statfile << particles[i].id << "\t"
-                 << particles[i].x  << "\t"
-                 << particles[i].y  << "\t"
-                 << particles[i].z  << endl; }
-    statfile.close(); }
 
 int main(int argc, char** argv)
 {   //  Perform MPI-required initialization.
@@ -57,6 +31,7 @@ int main(int argc, char** argv)
     MPI_Comm_size(MPI_COMM_WORLD, &size);
     
     //  Load arguments and initialize parameters.
+    double progTime = -MPI_Wtime();
     parseInput(argc, argv);
     loadConfig();
     loadRules();
@@ -66,23 +41,31 @@ int main(int argc, char** argv)
     readXYZ();
     MPI_Barrier(MPI_COMM_WORLD);
     readTime += MPI_Wtime();
-    if (!rank)  cout << "◔ Particles read in " << readTime << " s.\n";
+    if (!rank)  cout << "▦ Particles read in " << readTime << " s.\n";
     
     //  Calculate nearest neighbors of each particle.
     double nnTime = -MPI_Wtime();
     calculateNeighbors();
     MPI_Barrier(MPI_COMM_WORLD);
     nnTime += MPI_Wtime();
-    if (!rank)  cout << "◑ Nearest neighbors calculated in " << nnTime << " s.\n";
+    if (!rank)  cout << "☍ Nearest neighbors calculated in " << nnTime << " s.\n";
     
     //  Perform system calculation.
     double procTime = -MPI_Wtime();
     process();
     MPI_Barrier(MPI_COMM_WORLD);
     procTime += MPI_Wtime();
-    if (!rank)  cout << "◕ Processing complete in " << procTime << " s.\n";
+    if (!rank)  cout << "✻ Processing complete in " << procTime << " s.\n";
+    
+    //  Collate data.
+    if (!rank)
+    {   cout << "✇ Data output collated and finalized.\n";
+        collectStatFiles(); }
     
     //  Finalize and exit.
+    progTime += MPI_Wtime();
+    if (!rank)  cout << "★ Program complete in " << progTime << " s.\n";
+    cout.flush();
     MPI_Finalize();
     return EXIT_SUCCESS; }
 

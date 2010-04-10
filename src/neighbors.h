@@ -5,3 +5,4 @@ void findMaxNN();
 void calculateNeighbors();
 
 #endif	/* _NEIGHBORS_H */
+

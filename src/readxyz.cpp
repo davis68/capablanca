@@ -8,7 +8,7 @@
  *  Current issues:  occasionally drops particles, so assert() commented out. ***
  */
 #include <algorithm>
-#include <cassert>
+#include <cassert> //***
 #include <iostream>
 #include <mpi.h>
 #include <cstdio>
@@ -43,21 +43,27 @@ class TempParticle
         coord_t state;
         
         TempParticle(coord_t _x, coord_t _y, coord_t _z, state_t _state)
-        {   x = _x; y = _y; z = _z;
+        {   x = _x;
+            y = _y;
+            z = _z;
             state = (coord_t) _state; } };
 
-int interval, idCount;
+int interval,
+    idCount;
 
-/*  Assign the node number for a particle based on its Y
-    coordinate.  Normalize to Y range and scale to number
-    of nodes, convert to int.  Check for exactly equal to
-    upper limit so the integer isn't bigger than highest rank
-*/
+/*  getProc(coord_t y)
+ *  
+ *  Assign the node number for a particle based on its y coordinate.  Normalize
+ *  to Y range and scale to number of nodes, convert to int.  Check for exactly
+ *  equality to the upper limit so the integer isn't bigger than highest rank.
+ */
 unsigned int getProc(coord_t y)
 {   coord_t range   = maxY - minY,
-            p_float = ((y - minY) / range) * size;
-    int     p_num   = (int) p_float; if (p_num == size) p_num--;
-    return p_num; }
+            procFloat = ((y - minY) / range) * size;
+    int     procNum   = (int) procFloat;
+    if (procNum == size) procNum--;
+    
+    return procNum; }
 
 /*  int assignID()
  *  
@@ -89,17 +95,16 @@ void setMinMax (Particle *p1, bool &flag)
 
 /*  void readXYZ()
  *  
- *  Reads XYZ file, builds particle struct for each particle, and separates
- *  particles into buckets for each proc to own.
+ *  Reads XYZ file, builds particle struct for each particle, and separates the
+ *  particles into buckets for each processor to own.
  *  
- *  First line of XYZ file is an integer with the number of particles
- *  in the file.  The rest of the lines contain 4 fields:
- *  id, x, y, z that are tab separated.
+ *  The first line of XYZ file is an integer with the number of particles in the
+ *  file.  The rest of the lines contain 4 tab-separated fields,
+ *      id, x, y, z.
  *  
- *  This function reads the first line to get the number of particles,
- *  then loops that many times to read lines and split the fields.
- *  Particles are constructed with the fields from each line.  They are
- *  then pushed onto a vector
+ *  This function reads the first line to get the number of particles, then
+ *  loops that many times to read lines and split the fields.  Particles are
+ *  constructed with the fields from each line and then pushed onto a vector.
  */
 void readXYZ()
 {   id_t    id;
@@ -107,7 +112,11 @@ void readXYZ()
     state_t state;
     int     thisProc;    //  Rank to which a particle will be assigned.
     interval = idCount = 0;
-    findMaxNN(); //***
+    findMaxNN();
+    
+    bool    hasInitLocalMinMax = false;
+    vector<TempParticle*> tempParticle;
+    double  localMinY, localMaxY;
     
     // 2-D array to hold raw particle data per destination node
     vector<vector<coord_t> > sendBuckets(size);
@@ -121,54 +130,56 @@ void readXYZ()
         error(err);
         return; }
     
-    fscanf(xyz_file, "%u", &initialTotalParticles);
-    
-    //  Determine file size.
-    long int curr_fptr;             //  Test file ptr finding EOL, EOF data.
-    curr_fptr = ftell(xyz_file);    //  Note that this is currently EOL 1.
-    fseek(xyz_file, 0, SEEK_END);
-    int fileBytes   = ftell(xyz_file) - curr_fptr,      //  Total bytes of particle data in file.
-        bytesPerNode= fileBytes / size,                 //  Bytes of particle data per proc.
-        fileStartPtr= bytesPerNode * rank + curr_fptr,  //  Start of data for this proc.
-        fileEndPtr  = fileStartPtr + bytesPerNode - 1;  //  End of data for this proc.
-    
-    //  Align start/end ptrs to EOLs.
-    fseek(xyz_file, fileStartPtr, SEEK_SET);
-    int c = fgetc(xyz_file);
-    while(c != '\n' && c != EOF)
-    {   c = fgetc(xyz_file); }
-    fileStartPtr = ftell(xyz_file) - 1;
-    
-    fseek(xyz_file, fileEndPtr, SEEK_SET);
-    c = fgetc(xyz_file);
-    while(c != '\n' && c != EOF)
-    {   c = fgetc(xyz_file); }
-    fileEndPtr = ftell(xyz_file) - 1;
-    if (rank == size - 1)                       //  Force last proc to EOF.
-    {   fseek(xyz_file, -1, SEEK_END);
-        fileEndPtr = ftell(xyz_file); }
-    fseek(xyz_file, fileStartPtr, SEEK_SET);    //  Seek to start ptr.
-    
-    double  localMinY, localMaxY;
-    bool    hasInitLocalMinMax = false;
-    vector<TempParticle*> tempParticle;
-    
-    //  Get interval as estimated number of particles plus one thousand.
-    int bytesInFile = fileEndPtr - fileStartPtr,
-        numParticlesInFile = bytesInFile / (34 * sizeof(char)); //*** validate
-    interval = numParticlesInFile / size + 1000;
-    
-    while(ftell(xyz_file) != fileEndPtr)
-    {   fscanf(xyz_file, "%u %lf %lf %lf", &state, &x, &y, &z);
+    try
+    {   fscanf(xyz_file, "%u", &initialTotalParticles);
         
-        //  Assign to localMinY, localMaxY.
-        if(!hasInitLocalMinMax)
-        {   localMinY = localMaxY = y;
-            hasInitLocalMinMax = true; }
-        if(y < localMinY)   localMinY = y;
-        if(y > localMaxY)   localMaxY = y;
+        //  Determine file size.
+        long int curr_fptr;             //  Test file ptr finding EOL, EOF data.
+        curr_fptr = ftell(xyz_file);    //  Note that this is currently EOL 1.
+        fseek(xyz_file, 0, SEEK_END);
+        int fileBytes   = ftell(xyz_file) - curr_fptr,      //  Total bytes of particle data in file.
+            bytesPerNode= fileBytes / size,                 //  Bytes of particle data per proc.
+            fileStartPtr= bytesPerNode * rank + curr_fptr,  //  Start of data for this proc.
+            fileEndPtr  = fileStartPtr + bytesPerNode - 1;  //  End of data for this proc.
         
-        tempParticle.push_back(new TempParticle(x, y, z, state)); }
+        //  Align start/end ptrs to EOLs.
+        fseek(xyz_file, fileStartPtr, SEEK_SET);
+        int c = fgetc(xyz_file);
+        while(c != '\n' && c != EOF)
+        {   c = fgetc(xyz_file); }
+        fileStartPtr = ftell(xyz_file) - 1;
+        
+        fseek(xyz_file, fileEndPtr, SEEK_SET);
+        c = fgetc(xyz_file);
+        while(c != '\n' && c != EOF)
+        {   c = fgetc(xyz_file); }
+        fileEndPtr = ftell(xyz_file) - 1;
+        if (rank == size - 1)                       //  Force last proc to EOF.
+        {   fseek(xyz_file, -1, SEEK_END);
+            fileEndPtr = ftell(xyz_file); }
+        fseek(xyz_file, fileStartPtr, SEEK_SET);    //  Seek to start ptr.
+        
+        //  Get interval as estimated number of particles plus one thousand.
+        int bytesInFile = fileEndPtr - fileStartPtr,
+            numParticlesInFile = bytesInFile / (34 * sizeof(char)); //*** validate
+        interval = numParticlesInFile / size + 1000;
+        
+        while(ftell(xyz_file) != fileEndPtr)
+        {   fscanf(xyz_file, "%u %lf %lf %lf", &state, &x, &y, &z);
+            
+            //  Assign to localMinY, localMaxY.
+            if(!hasInitLocalMinMax)
+            {   localMinY = localMaxY = y;
+                hasInitLocalMinMax = true; }
+            if(y < localMinY)   localMinY = y;
+            if(y > localMaxY)   localMaxY = y;
+            
+            tempParticle.push_back(new TempParticle(x, y, z, state)); }
+        fclose(xyz_file); }
+    catch (...)
+    {   char err[64];
+        sprintf(err, "⚠ Unable to read data file %s.", dataFileName);
+        error(err); }
     
     //  Find global min and max Y-coordinates.
     MPI_Allreduce(&localMinY, &minY, 1, MPI_DOUBLE, MPI_MIN, MPI_COMM_WORLD);
@@ -249,6 +260,5 @@ void readXYZ()
                   particleCount, 1, MPI_INT, MPI_COMM_WORLD);
     int basis = accumulate(particleCount, particleCount + rank, 0);
     for (uint i = 0; i < particles.size(); i++)
-    {   particles[i].id = i + basis; }
-}
+    {   particles[i].id = i + basis; } }
 

@@ -1,14 +1,10 @@
 /*
-The chief problem right now is that only when a particle dissolves is its state
-abroad updated.  We need a plan to update the information every time a particle
-changes at all instead.  States is not currently transferred.
+    The chief problem right now is that only when a particle dissolves is its state
+    abroad updated.  We need a plan to update the information every time a particle
+    changes at all instead.  States is not currently transferred.
 
-process_helpers.h uses MPI buffered send mode, and so is incompatible with other
-functions which may also use that mode.
-
-The send/recv overflows the buffer still.
-
-The last use of static is as a global variable inside a file of code. In this case, the use of static indicates that source code in other files that are part of the project cannot access the variable. Only code inside the single file can see the variable. (It's scope -- or visibility -- is limited to the file.) This technique can be used to simulate object oriented code because it limits visibility of a variable and thus helps avoid naming conflicts. This use of static is a holdover from C.
+    process_helpers.h uses MPI buffered send mode, and so is incompatible with other
+    functions which may also use that mode.
 */
 #ifndef _PROCESS_HELPERS_H
 #define _PROCESS_HELPERS_H

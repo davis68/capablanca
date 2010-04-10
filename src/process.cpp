@@ -1,4 +1,3 @@
-//  Another thing I'd like to fix is the logick of this file and process_helpers.h and process.h.
 #include <math.h>
 #include <iostream>
 #include <cstdio>
@@ -24,7 +23,6 @@ extern int          outputInterval,
                     tmax;
 
 extern vector<vector<double> >  prob;
-extern ParticleMap              pmap;
 extern vector<ParticlePtr>      surface;
 
 extern vector<uint>     oldParticleCount;
@@ -45,8 +43,7 @@ static inline double myrand()
  */
 inline void updateState(ParticlePtr ptr)
 {   if (myrand() < prob[ptr->state][accumulate(ptr->countN.begin(), ptr->countN.begin() + dissolnStates, 0)])
-    {   //***cerr << rank << "->" << ptr->id << " from " << ptr->state << " to " << rxn[ptr->state].newState << endl;
-        ptr->state = rxn[ptr->state].newState;
+    {   ptr->state = rxn[ptr->state].newState;
         if (ptr->onBoundary) updateOnBoundary(ptr);
         else                 updateOffBoundary(ptr); } }
 
@@ -114,9 +111,5 @@ void process()
         
         if (verbose && !(t % outputInterval) && !rank)
         {   cout << "  " << 100 * (double) t / (double) tmax << "% complete.\n";
-            cout.flush(); } }
-    
-    if (!rank)
-    {   cerr << "  Collecting & finalizing data output.\n";
-        collectStatFiles(); } }
+            cout.flush(); } } }
 

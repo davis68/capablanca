@@ -1,10 +1,3 @@
-/* 
- * File:   input.h
- * Author: ascentury
- *
- * Created on December 13, 2009, 6:01 PM
- */
-
 #ifndef _INPUT_H
 #define	_INPUT_H
 
