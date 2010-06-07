@@ -1,5 +1,6 @@
 all: main.o globals.o readxyz.o neighbors.o process.o error.o input.o statistics.o
 	mpicxx -o capablanca main.o globals.o readxyz.o neighbors.o process.o error.o input.o statistics.o
+	rm -f *.o *.gch
 
 optimized: main.o globals.o readxyz.o neighbors.o process.o error.o input.o statistics.o
 	mpicxx -Os -o capablanca main.o globals.o readxyz.o neighbors.o process.o error.o input.o statistics.o
@@ -17,7 +18,7 @@ neighbors.o: neighbors.cpp
 	mpicxx -c neighbors.cpp
 
 process.o: process.cpp
-	mpicxx -c process.cpp
+	mpicxx -I /usr/include/boost -c process.cpp
 
 error.o: error.cpp
 	mpicxx -c error.cpp

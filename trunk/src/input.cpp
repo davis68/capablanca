@@ -1,15 +1,21 @@
+/** input.cpp
+ *  27 Feb 2010--02 Jun 2010
+ *  Neal Davis
+ */
+
 #include <fstream>
 #include <iostream>
+#include <mpi.h>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
 #include "definitions.h"
 #include "error.h"
 #include "input.h"
-#include "mpi.h"
 
 using namespace std;
 
+//  External global variables from global.cpp
 extern char    *progName,
                *progVers,
                *confFileName,
@@ -26,6 +32,7 @@ extern Reaction *rxn;
 
 extern int      outputInterval,
                 tmax;
+extern bool     deposition;
 
 extern int      rank;
 
@@ -36,6 +43,7 @@ void outputHelp()
          << "that the terminal support Unicode UTF-8 or higher." << endl << endl
          << "Usage:  " << progName << " [OPTION]..." << endl << endl
          << "  -c CONFIG.CFG     specify configuration file;" << endl
+         << "  -d                suppress deposition;" << endl
          << "  -h                display this help message;" << endl
          << "  -E φ              specify potential φ;" << endl
          << "  -i Τ              specify Τ steps between output files;" << endl
@@ -128,6 +136,7 @@ void parseInput(const int argc, char** argv)
     ruleFileName= new char[32];
     dataFileName= new char[32];
     verbose     = false;
+    deposition  = true;
     
     bool    confFlag = false,
             ruleFlag = false,
@@ -155,6 +164,10 @@ void parseInput(const int argc, char** argv)
                     val = strtok(argv[i++], " ,");
                     confFileName = val;
                     confFlag = true;
+                    break;
+                    
+                case 'd':   //  Suppress deposition.
+                    deposition = false;
                     break;
                     
                 case 'E':   //  Potential specified.

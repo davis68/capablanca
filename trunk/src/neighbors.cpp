@@ -1,4 +1,12 @@
-#include <cassert>
+/** neighbors.cpp
+ *  29 Oct 2009--07 Jun 2010
+ *  Neal Davis, Minas Charalambides, and Simon Jenkins
+ *  
+ *  This file uses MPI buffered send mode, which precludes any other portion
+ *  of the program from using this mode simultaneously.
+ */
+
+#include <algorithm>
 #include <iostream>
 #include <map>
 #include <cmath>
@@ -11,16 +19,13 @@
 #include "neighbors.h"
 #include "particle.h"
 
-#include <fstream>
-#include <sstream>
-#include <string>
-
 #define  SENT_PARTICLE_SIZE 5
 
 using namespace std;
 
-typedef vector<Particle>    Cell;
+typedef vector<Particle> Cell;
 
+//  External global variables from global.cpp
 extern bool verbose;
 
 extern uint numStates,
@@ -36,22 +41,38 @@ extern coord_t myMinX, myMinY, myMinZ,
                myMaxX, myMaxY, myMaxZ,
                minY, maxY;
 
+//  Global variables
 uint numCellsX, numCellsY, numCellsZ;
 vector<vector<vector<Cell> > > cells;
 
 /*  void findMaxNN()
  *  
- *  Find the expected number of maximum nearest neighbors. ***
+ *  Find the expected number of maximum nearest neighbors.
  */
 void findMaxNN()
-{   maxNN = MAX_NEIGHBORS; }
+{   if (!rank)
+    {   Particle i1, i2;
+        i1 = particles[0];
+        for (vector<Particle>::iterator iter = particles.begin() + 1; iter != particles.end(); iter++)
+        {   if (distSqrd(i1, *iter) <= NEIGHBOR_SQUARE_CUTOFF)
+            {   i2 = *iter; break; } }
+        
+        //  Determine orientation type by the distance in each dimension.
+        double  dx = abs(i1.x - i2.x),
+                dy = abs(i1.y - i2.y),
+                dz = abs(i1.z - i2.z),
+                d  = max(dx, max(dy, dz));
+        if (abs(d - 0.707) < 1e-2)      maxNN = 12;     //  FCC
+        else if (abs(d - 0.577) < 1e-2) maxNN = 8;      //  BCC
+        else                            maxNN = 6; }    //  SC
+    MPI_Bcast(&maxNN, 1, MPI_UNSIGNED, 0, MPI_COMM_WORLD); }
 
 /*  void checkBorder(Particle&, const coord_t)
  *  
- *  Find whether the particle lies within the cutoff radius of the border.
+ *  Find whether the particle lies within a cutoff radius of the border.
  */
 inline void checkBorder(Particle& p, const coord_t y)
-{   if(abs(y - p.y) <= BORDER_CUTOFF) p.onBoundary = true; }
+{   if(abs(y - p.y) <= NEIGHBOR_SQUARE_CUTOFF) p.onBoundary = true; }
 
 /*  double distSqrd(Particle& p1, Particle& p2)
  *  
@@ -66,15 +87,12 @@ inline double distSqrd(Particle& p1, Particle& p2)
 
 /*  uint getNumCells(const coord_t)
  *  
- *  Find the appropriate number of cells in a given dimension. *** optimize
+ *  Find the appropriate number of cells in a given dimension.
  */
 inline uint getNumCells(const coord_t range)
-{   /*double  inv3 = 1.0f / 3.0f;
-    if (range != floor(range))
-        return ceil(inv3 * range);
-    else
-        return inv3 * floor(range);*/ //***
-    return NUM_CELLS; }
+{   static double inv3 = 1.0 / 3.0;
+    //FIXME:return floor(range * inv3);
+    return 3;/***/ }
 
 /*  void createCells()
  *  
@@ -119,12 +137,25 @@ inline void createCells()
         cells[k][l][m].push_back(p);
         particles.pop_back(); } }
 
+/*  bool alreadyNeighbors()
+ *  
+ *  Indicate whether two particles are already neighbors to each other.
+ */
+inline bool alreadyNeighbors(Particle& p1, Particle& p2)
+{   for (vector<id_t>::iterator iter = p1.neighbors.begin(); iter != p1.neighbors.end(); iter++)
+    {   if (find(p2.neighbors.begin(), p2.neighbors.end(), *iter) != p2.neighbors.end()) return true; }
+    
+    return false; }
+
 /*  void makeNeighbors(Particle&, Particle&)
  *  
  *  Make two particles have each other's states & ids in their neighbor list.
  */
 inline void makeNeighbors(Particle& p1, Particle& p2)
-{   int numNN = accumulate(p1.countN.begin(), p1.countN.begin() + dissolnStates, 0);
+{   if (alreadyNeighbors(p1, p2))   return;
+    
+    static uint numNN;
+    numNN = accumulate(p1.countN.begin(), p1.countN.begin() + dissolnStates, 0);
     if(numNN > maxNN)
     {   char err[64];
         sprintf(err, "Too many neighbors detected for particle %d: %d.", p1.id, numNN);
@@ -134,9 +165,9 @@ inline void makeNeighbors(Particle& p1, Particle& p2)
     {   char err[64];
         sprintf(err, "Too many neighbors detected for particles %d: %d.", p2.id, numNN);
         warning(err); }
-    p1.neighbors[p2.state].push_back(p2.id);
+    p1.neighbors.push_back(p2.id);
     p1.countN[p2.state]++;
-    p2.neighbors[p1.state].push_back(p1.id);
+    p2.neighbors.push_back(p1.id);
     p2.countN[p1.state]++; }
 
 /*  void makeNeighborsAffectOnlyLeft(Particle&, Particle&)
@@ -144,12 +175,15 @@ inline void makeNeighbors(Particle& p1, Particle& p2)
  *  Make a particle have another's state & id in its neighbor list.
  */
 inline void makeNeighborsAffectOnlyLeft(Particle& p1, Particle& p2)
-{   int numNN = accumulate(p1.countN.begin(), p1.countN.begin() + dissolnStates, 0);
+{   if (alreadyNeighbors(p1, p2))   return;
+    
+    static uint numNN;
+    numNN = accumulate(p1.countN.begin(), p1.countN.begin() + dissolnStates, 0);
     if(numNN > maxNN)
     {   char err[64];
         sprintf(err, "Too many neighbors detected for particle %d: %d.", p1.id, numNN);
         warning(err); }
-    p1.neighbors[p2.state].push_back(p2.id);
+    p1.neighbors.push_back(p2.id);
     p1.countN[p2.state]++; }
 
 /*  void findIntraCellNeighbors(Cell&, Cell&)
@@ -157,28 +191,27 @@ inline void makeNeighborsAffectOnlyLeft(Particle& p1, Particle& p2)
  *  Test each particle within a cell to see if they are neighbors.
  */
 inline void findIntraCellNeighbors(Cell& cell1)
-{   for(uint i = 0; i < cell1.size(); i++)
-    {   for(uint j = i + 1; j < cell1.size(); j++)
-        {   if(distSqrd(cell1[i], cell1[j]) <= NEIGHBOR_SQUARE_CUTOFF)
-            {   makeNeighbors(cell1[i], cell1[j]); } } } }
+{   for(Cell::iterator iter1 = cell1.begin(); iter1 != cell1.end(); iter1++)
+    {   for(Cell::iterator iter2 = iter1 + 1; iter2 != cell1.end(); iter2++)
+        {   if(distSqrd(*iter1, *iter2) <= NEIGHBOR_SQUARE_CUTOFF)
+            {   makeNeighbors(*iter1, *iter2); } } } }
 
 /*  void findInterCellNeighbors(Cell&, Cell&)
  *  
  *  Test each particle within two cells to see if they are neighbors.
  */
 inline void findInterCellNeighbors(Cell& cell1, Cell& cell2)
-{   for(uint i = 0; i < cell1.size(); i++)
-    {   for(uint j = 0; j < cell2.size(); j++)
-        {   if(distSqrd(cell1[i], cell2[j]) <= NEIGHBOR_SQUARE_CUTOFF)
-            {   makeNeighbors(cell1[i], cell2[j]); } } } }
+{   for(Cell::iterator iter1 = cell1.begin(); iter1 != cell1.end(); iter1++)
+    {   for(Cell::iterator iter2 = cell2.begin(); iter2 != cell2.end(); iter2++)
+        {   if(distSqrd(*iter1, *iter2) <= NEIGHBOR_SQUARE_CUTOFF)
+            {   makeNeighbors(*iter1, *iter2); } } } }
 
 /*  void findLocalNeighbors()
  *  
  *  Test all particles on this processor to see if they are neighbors.
  */
 inline void findLocalNeighbors()
-{   int currProg, maxProg;
-    for(uint i = 0; i < numCellsX; i++)
+{   for(uint i = 0; i < numCellsX; i++)
     {   for(uint j = 0; j < numCellsY; j++)
         {   for(uint k = 0; k < numCellsZ; k++)
             {   //  Find local neighbors.
@@ -202,16 +235,33 @@ inline void findLocalNeighbors()
  *  
  *  Pack a slice of a cell into a buffer for messaging.
  */
-inline void getSlice(coord_t* buffer, int& bsize, const uint y)
-{   bsize = 0;
+inline void getSlice(coord_t* buffer, int& bufferSize, const uint y)
+{   bufferSize = 0;
+    for (uint x = 0; x < numCellsX; x++)
+    {   for (uint z = 0; z < numCellsZ; z++)
+        {   for (Cell::iterator iter = cells[x][y][z].begin(); iter != cells[x][y][z].end(); iter++)
+            {   if ((*iter).onBoundary)
+                {   buffer[bufferSize++] = (coord_t) (*iter).id;
+                    buffer[bufferSize++] =           (*iter).x;
+                    buffer[bufferSize++] =           (*iter).y;
+                    buffer[bufferSize++] =           (*iter).z;
+                    buffer[bufferSize++] = (coord_t) (*iter).state; } } } } }
+
+
+/*  void getBSlice(coord_t*, int&, const uint) FIXME
+ *  
+ *  Pack a slice of a cell into a buffer for messaging.
+ */
+inline void getBSlice(coord_t* buffer, int& bufferSize, const uint y)
+{   bufferSize = 0;
     for (uint x = 0; x < numCellsX; x++)
     {   for (uint z = 0; z < numCellsZ; z++)
         {   for (uint i = 0; i < cells[x][y][z].size(); i++)
-            {   buffer[bsize++] = (coord_t) cells[x][y][z][i].id;
-                buffer[bsize++] =           cells[x][y][z][i].x;
-                buffer[bsize++] =           cells[x][y][z][i].y;
-                buffer[bsize++] =           cells[x][y][z][i].z;
-                buffer[bsize++] = (coord_t) cells[x][y][z][i].state; } } } }
+            {   buffer[bufferSize++] = (coord_t) cells[x][y][z][i].id;
+                buffer[bufferSize++] =           cells[x][y][z][i].x;
+                buffer[bufferSize++] =           cells[x][y][z][i].y;
+                buffer[bufferSize++] =           cells[x][y][z][i].z;
+                buffer[bufferSize++] = (coord_t) cells[x][y][z][i].state; } } } }
 
 /*  void checkNeighbors(Cell&, coord_t*)
  *  
@@ -219,37 +269,100 @@ inline void getSlice(coord_t* buffer, int& bsize, const uint y)
  */
 inline void checkNeighbors(Cell& cell1, coord_t* data)
 {   Particle other(data[0], data[1], data[2], data[3], data[4]);
-    for(uint i = 0; i < cell1.size(); i++)
-    {   if(distSqrd(cell1[i], other) <= NEIGHBOR_SQUARE_CUTOFF)
-        {   makeNeighborsAffectOnlyLeft(cell1[i], other); } } }
+    for(Cell::iterator iter1 = cell1.begin(); iter1 != cell1.end(); iter1++)
+    {   if(distSqrd(*iter1, other) <= NEIGHBOR_SQUARE_CUTOFF)
+        {   makeNeighborsAffectOnlyLeft(*iter1, other); } } }
 
 /*  void findRemoteNeighbors()
  *  
  *  Find neighbors on the borders between processors.
  */
 inline void findRemoteNeighbors()
+{   static coord_t  sendBuffer[MAX_ARRAY_SIZE],
+                    recvBuffer[MAX_ARRAY_SIZE];
+    int sendBufferSize = 0,
+        recvBufferSize = 0;
+    MPI_Status  status;
+    
+    //  Determine neighboring processors.
+    int rankLeft, rankRight;
+    rankRight = (rank == size - 1) ? MPI_PROC_NULL : rank + 1;
+    rankLeft  = (rank == 0)        ? MPI_PROC_NULL : rank - 1;
+    
+    //  Even processors send to left, then odd processors send to left.
+    getSlice(sendBuffer, sendBufferSize, 0);
+    if (rank % 2 == 0)
+    {   MPI_Ssend(sendBuffer, sendBufferSize, MPI_DOUBLE, rankLeft,
+                  sendBufferSize / SENT_PARTICLE_SIZE, MPI_COMM_WORLD); }
+    else
+    {   MPI_Recv(recvBuffer + recvBufferSize, MAX_ARRAY_SIZE, MPI_DOUBLE, rankRight,
+                 MPI_ANY_TAG, MPI_COMM_WORLD, &status);
+        recvBufferSize += status.MPI_TAG; }
+    if (rank % 2 != 0)
+    {   MPI_Ssend(sendBuffer, sendBufferSize, MPI_DOUBLE, rankLeft,
+                  sendBufferSize / SENT_PARTICLE_SIZE, MPI_COMM_WORLD); }
+    else
+    {   MPI_Recv(recvBuffer + recvBufferSize, MAX_ARRAY_SIZE, MPI_DOUBLE, rankRight,
+                 MPI_ANY_TAG, MPI_COMM_WORLD, &status);
+        recvBufferSize += status.MPI_TAG; }
+    
+    //  Even processors send to right, then odd processors send to right.
+    getSlice(sendBuffer, sendBufferSize, numCellsY - 1);
+    if (rank % 2 == 0)
+    {   MPI_Ssend(sendBuffer, sendBufferSize, MPI_DOUBLE, rankRight,
+                  sendBufferSize / SENT_PARTICLE_SIZE, MPI_COMM_WORLD); }
+    else
+    {   MPI_Recv(recvBuffer + recvBufferSize, MAX_ARRAY_SIZE, MPI_DOUBLE, rankLeft,
+                 MPI_ANY_TAG, MPI_COMM_WORLD, &status);
+        recvBufferSize += status.MPI_TAG; }
+    if (rank % 2 != 0)
+    {   MPI_Ssend(sendBuffer, sendBufferSize, MPI_DOUBLE, rankRight,
+                  sendBufferSize / SENT_PARTICLE_SIZE, MPI_COMM_WORLD); }
+    else
+    {   MPI_Recv(recvBuffer + recvBufferSize, MAX_ARRAY_SIZE, MPI_DOUBLE, rankLeft,
+                 MPI_ANY_TAG, MPI_COMM_WORLD, &status);
+        recvBufferSize += status.MPI_TAG; }
+    
+    if (rank > 0)
+    {   for(uint i = 0; i < (uint) status.MPI_TAG; i++)
+        {   for(uint x = 0; x < numCellsX; x++)
+            {   for(uint z = 0; z < numCellsZ; z++)
+                {   checkNeighbors(cells[x][0][z],
+                                   &(sendBuffer[i * SENT_PARTICLE_SIZE])); } } } }
+    if(rank < size - 1)
+    {   for(uint i = 0; i < (uint) status.MPI_TAG; i++)
+        {   for(uint x = 0; x < numCellsX; x++)
+            {   for(uint z = 0; z < numCellsZ; z++)
+                {   checkNeighbors(cells[x][numCellsY - 1][z],
+                                   &(sendBuffer[i * SENT_PARTICLE_SIZE])); } } } } }
+
+/*  void findBRemoteNeighbors() FIXME
+ *  
+ *  Find neighbors on the borders between processors using MPI buffered send mode.
+ */
+inline void findBRemoteNeighbors()
 {   int     mpi_buffer_size = MAX_ARRAY_SIZE * 2 * sizeof(coord_t);
     byte    mpi_buffer[mpi_buffer_size];
     coord_t buffer[MAX_ARRAY_SIZE];
-    int     bsize;
+    int     bufferSize;
     MPI_Status  status;
     MPI_Request mpr1;
     
     MPI_Buffer_attach(mpi_buffer, mpi_buffer_size);
-    //*** clean up following with MPI_PROC_NULL
+    
     if(rank > 0)
-    {   getSlice(buffer, bsize, 0);
-        MPI_Ibsend(buffer, bsize, MPI_DOUBLE, rank - 1,
-                  bsize / SENT_PARTICLE_SIZE, MPI_COMM_WORLD, &mpr1); }
+    {   getBSlice(buffer, bufferSize, 0);
+        MPI_Ibsend(buffer, bufferSize, MPI_DOUBLE, rank - 1,
+                  bufferSize / SENT_PARTICLE_SIZE, MPI_COMM_WORLD, &mpr1); }
     if(rank < size - 1)
-    {   getSlice(buffer, bsize, numCellsY - 1);
-        MPI_Ibsend(buffer, bsize, MPI_DOUBLE, rank + 1,
-                  bsize / SENT_PARTICLE_SIZE, MPI_COMM_WORLD, &mpr1); }
+    {   getBSlice(buffer, bufferSize, numCellsY - 1);
+        MPI_Ibsend(buffer, bufferSize, MPI_DOUBLE, rank + 1,
+                  bufferSize / SENT_PARTICLE_SIZE, MPI_COMM_WORLD, &mpr1); }
     
     if(rank > 0)
     {   MPI_Recv(buffer, MAX_ARRAY_SIZE, MPI_DOUBLE, rank - 1,
                  MPI_ANY_TAG, MPI_COMM_WORLD, &status);
-        for(uint i = 0; i < status.MPI_TAG; i++)
+        for(uint i = 0; i < (uint) status.MPI_TAG; i++)
         {   for(uint x = 0; x < numCellsX; x++)
             {   for(uint z = 0; z < numCellsZ; z++)
                 {   checkNeighbors(cells[x][0][z],
@@ -257,7 +370,7 @@ inline void findRemoteNeighbors()
     if(rank < size - 1)
     {   MPI_Recv(buffer, MAX_ARRAY_SIZE, MPI_DOUBLE, rank + 1,
                  MPI_ANY_TAG, MPI_COMM_WORLD, &status);
-        for(uint i = 0; i < status.MPI_TAG; i++)
+        for(uint i = 0; i < (uint) status.MPI_TAG; i++)
         {   for(uint x = 0; x < numCellsX; x++)
             {   for(uint z = 0; z < numCellsZ; z++)
                 {   checkNeighbors(cells[x][numCellsY - 1][z],
@@ -273,19 +386,21 @@ inline void fillMap()
 {   for(uint x = 0; x < numCellsX; x++)
     {   for(uint y = 0; y < numCellsY; y++)
         {   for(uint z = 0; z < numCellsZ; z++)
-            {   for(uint i = 0; i < cells[x][y][z].size(); i++)
-                {   Particle& p = cells[x][y][z].back();
+            {   for(Cell::iterator iter = cells[x][y][z].begin(); iter != cells[x][y][z].end(); iter++)
+                {   Particle& p = *iter;
                     p.initialN  = p.countN;
-                    pmap.insert(pair<id_t, Particle>(p.id, p));
-                    cells[x][y][z].pop_back(); } } } } }
+                    p.onSurface = notOnSurface;
+                    pmap.insert(pair<id_t, Particle>(p.id, p)); }
+                cells[x][y][z].clear(); } } } }
 
 /*  void calculateNeighbors()
  *  
  *  Calculate the number of nearest neighbors of each particle.
  */
 void calculateNeighbors()
-{   createCells();          if (verbose && rank == 1) cout << "  Cell division complete." << endl;
-    findLocalNeighbors();   if (verbose && rank == 1) cout << "  Local neighbors found." << endl;
-    findRemoteNeighbors();  if (verbose && rank == 1) cout << "  Remote neighbors found." << endl;
+{   findMaxNN();
+    createCells();          if (verbose && !rank) cout << "  Cell partitioning complete." << endl;  cout.flush();
+    findLocalNeighbors();   if (verbose && !rank) cout << "  Local neighbors found." << endl;       cout.flush();
+    findBRemoteNeighbors();  if (verbose && !rank) cout << "  Remote neighbors found." << endl;      cout.flush();
     fillMap(); }
 

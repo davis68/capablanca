@@ -1,3 +1,8 @@
+/** particle.h
+ *  29 Oct 2009--07 Jun 2010
+ *  Neal Davis
+ */
+
 #ifndef _PARTICLE_H
 #define _PARTICLE_H
 
@@ -10,46 +15,32 @@
 using namespace std;
 
 extern uint numStates,
-            dissolnStates,
             maxNN;
+
+//FIXME:enum surface {notOnSurface, onSurfaceA, onSurfaceB};
+const uint  notOnSurface = 0,           //  FIXME enum this?
+            onSurfaceA = 1,
+            onSurfaceB = 2;
 
 struct Particle
 {   vector<uint>    countN,     //  Current number of neighbors.
                     initialN;   //  Initial number of neighbors.
-    vector<vector<id_t> >   neighbors;  //  List of neighboring particle ids.
-    id_t    id;         //  This particle's id.
-    state_t state;      //  Current state of this particle.
-    bool    onBoundary, //  Indicates that the particle may have neighbors on a neighboring processor.
-            onSurface;  //  Indicates whether the particle is already on the surface.
-    coord_t x, y, z;    //  This particle's coordinates.
+    vector<id_t>    neighbors;  //  List of neighboring particle ids.
+    coord_t x, y, z;        //  This particle's coordinates.
+    id_t    id;             //  This particle's id.
+    state_t state;          //  Current state of this particle.
+    bool    onBoundary;     //  Indicates that the particle may have neighbors on a neighboring processor.
+    uint    onSurface;      //  Indicate whether the particle is already on a surface.
     
     Particle()
-     : onBoundary(false), id(0), x(0), y(0), z(0), state(0)
+     : x(0), y(0), z(0), id(0), state(0), onBoundary(false)
     {   countN.resize(numStates, 0);
-        initialN.resize(numStates, 0);
-        neighbors.resize(numStates);
-        for (uint i = 0; i < neighbors.size(); i++)
-        {   neighbors[i].resize(0); } }
+        initialN.resize(numStates, 0); }
     Particle(id_t _id, coord_t _x, coord_t _y, coord_t _z, state_t _st)
      : onBoundary(false)
-    {   id = _id; x = _x; y = _y; z = _z; state = _st;
+    {   x = _x; y = _y; z = _z; id = _id; state = _st;
         countN.resize(numStates, 0);
-        initialN.resize(numStates, 0);
-        neighbors.resize(numStates);
-        for (uint i = 0; i < neighbors.size(); i++)
-        {   neighbors[i].resize(0); } }
-    
-    void output()
-    {   cout << id << " [" << state << "] @ ("
-             << x << ", " << y << ", " << z << ") with "
-             << accumulate(countN.begin(), countN.begin() + dissolnStates, 0) << endl;
-        cout.flush(); }
-    void outputN()
-    {   cout << id << ": ";
-        for (uint i = 0; i < neighbors.size(); i++)
-        {   for (uint j = 0; j < neighbors[i].size(); j++)
-            {   cout << neighbors[i][j] << "; "; } }
-        cout << endl; cout.flush(); }
+        initialN.resize(numStates, 0); }
     
     /*  id_t* getNList()
      *  
@@ -60,15 +51,11 @@ struct Particle
         uint k = 0;
         
         for (uint i = 0; i < neighbors.size(); i++)
-        {   for (uint j = 0; j < neighbors[i].size(); j++)
-            {   nnList[k] = neighbors[i][j]; } }
-        return nnList; }
-};
+        {   nnList[k++] = neighbors[i]; }
+        
+        return nnList; } };
 
-typedef Particle*               ParticlePtr;
-typedef vector<Particle>        ParticleList; //*** perhaps a better name?
 typedef map<id_t, Particle>     ParticleMap;
-typedef ParticleMap::iterator   pmapiter;     //*** perhaps a better name?
 
 #endif  /* _PARTICLE_H */
 
