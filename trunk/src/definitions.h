@@ -1,3 +1,6 @@
+/** process.h
+ *  29 Oct 2009--12 Jul 2010
+ */
 #ifndef _DEFINITIONS_H
 #define _DEFINITIONS_H
 
@@ -6,8 +9,6 @@
 using namespace std;
 
 typedef unsigned int    uint;
-typedef unsigned long   ulong;
-typedef unsigned short  ushort;
 typedef unsigned char   byte;
 
 typedef uint            id_t;           //  the type used for particle ids
@@ -26,12 +27,11 @@ typedef vector<Vector>  Matrix;
 //  Calculation.
 #define MAX_ARRAY_SIZE  2000000         //  the maximum size of an array to be communicated between two CPUs FIXME
 
-//  Nearest-neighbor finding.
-#define NEIGHBOR_SQUARE_CUTOFF  1.004   //  determined by precision in XYZ file
-#define NUM_CELLS       32              //  FIXME
+//  Nearest-neighbor detection.
+#define NEIGHBOR_SQUARE_CUTOFF  1.010   //  determined by precision in XYZ file
 
 //  Processing.
-#define SURFACE_CUTOFF  4.0             //  particles within that distance from the top are considered to be in the surface
+#define SURFACE_CUTOFF  4.0             //  particles within that distance from the top are considered to be in the surface FIXME
 
 //  System parameters.
 const double    k_B = 1.0,              //  Boltzmann constant in reduced units
