@@ -1,5 +1,5 @@
 /** input.cpp
- *  27 Feb 2010--02 Jun 2010
+ *  27 Feb 2010--12 Jul 2010
  *  Neal Davis
  */
 
@@ -144,7 +144,7 @@ void parseInput(const int argc, char** argv)
     
     progName = new char[32];
     progVers = new char[8];
-    strcpy(progName, argv[0]);
+    strcpy(progName, "capablanca");
     strcpy(progVers, PROGRAM_VERSION);
     
     //  Set variables which will be affected by the configuration file to zero

@@ -11,11 +11,13 @@ Vital
 * fix half-layers in fcc/bcc in petroff
 * figure out visualization (now using VMD)
   set "make all" to "make optimized" by default
+/ check uint/int comparisons in for statements (by max value type) in all files
+* validate surface expansion functions
   
 
 Small-scale
 * incorporate better UPRNG/validation of ergodicity of rng-->convert to use Boost uniform_01
-  find better optimal nn cell size
+* find better optimal nn cell size (fails if cells too small for any particles)
 x set edges to 12 automatically
 * standardize file names and includes
   re-examine message passing in readXYZ() (& dropped particle)
@@ -25,6 +27,7 @@ x convert to use iterators, not indices of vectors
 * update file formatting to make it uniform
 * free allocated memory throughout
 * check for previous addition of neighbors and simplify neighbor structure (for now)
+  add simple particle output to stream function
   
 
 Medium
@@ -39,7 +42,9 @@ x convert completely to STL
   more general rules (esp for diff species)
   review original ppproj2009 for correct attributions of code
   make cyclicality a possibility
-  separate warning and error symbols
+s check all sides for surface within SURFACE_CUTOFF
+x separate warning and error symbols
+  write sstream-accepting particle output procedure in particle.h to simplify xyz output
   
 
 Wishlisted
@@ -51,3 +56,7 @@ Wishlisted
   
 Test the readXYZ() dropped particle thing to see if it's in the reading (try the 27 particles in test.xyz).
 What statistics do we wish to collect?
+
+The problem seems to be in what is a boundary particle (are any in this system?) and how the neighbors of those
+are added to the surface.  Thus I need to check the boundary particle surface expansion now.
+

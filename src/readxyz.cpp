@@ -7,6 +7,7 @@
 #include <cassert> //FIXME
 #include <iostream>
 #include <mpi.h>
+#include <numeric>
 #include <cstdio>
 #include <cstdlib>
 #include <vector>
@@ -28,8 +29,8 @@ extern int  rank,
 
 extern vector<Particle> particles;
 
-extern coord_t myMinX, myMinY, myMinZ, myMaxX, myMaxY, myMaxZ;
-extern double minY, maxY;
+extern coord_t myMinX, myMinY, myMinZ,
+               myMaxX, myMaxY, myMaxZ, minY, maxY;
 
 extern uint initialTotalParticles;
 

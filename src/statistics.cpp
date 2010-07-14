@@ -7,6 +7,7 @@
 #include <fstream>
 #include <iostream>
 #include <mpi.h>
+#include <numeric> //FIXME
 #include <cstdio>
 #include <cstdlib>
 #include <sys/stat.h> 
@@ -66,7 +67,7 @@ bool fileExists(char* fileName)
     //  The file does not exist, or we do not have permission to access it.
     {   return false; } }
 
-/*  outputSurface()
+/** outputSurface()
  *  
  *  Output a particle data to a file.
  */
@@ -92,7 +93,7 @@ void outputSurface(list<Particle*> particles, uint t)
         sprintf(err, "⚠ Unable to write output file %s.", outDataFileName);
         error(err); } }
 
-/*  outputToFile(int)
+/** outputToFile()
  *  
  *  Output all data to a file by time step and process.
  */
@@ -109,8 +110,11 @@ void outputToFile(uint t, uint totalAtoms)
     try
     {   //  Output non-dissolved particle positions to files which will later be collected.
         if (!rank) outDataFile << totalAtoms << endl;
+        uint numNN;
         for (ParticleMap::iterator iter = pmap.begin(); iter != pmap.end(); iter++)
-        {   outDataFile << iter->second.state << "\t" << iter->second.x << "\t"
+        {   if (iter->second.state >= dissolnStates) continue;
+            numNN = accumulate(iter->second.countN.begin(), iter->second.countN.begin() + dissolnStates, 0);
+            outDataFile << iter->second.state << "\t" << iter->second.x << "\t"
                         << iter->second.y     << "\t" << iter->second.z << endl; }
         outDataFile.close(); }
     catch (...)
@@ -151,7 +155,7 @@ void outputToFile(uint t, uint totalAtoms)
             sprintf(err, "⚠ Unable to write statistics file %s.", statFileName);
             error(err); } } }
 
-/*  collateStatistics(int)
+/** collateStatistics()
  *  
  *  Output the system configuration and empirical calculations to disk.
  */

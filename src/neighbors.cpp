@@ -1,5 +1,5 @@
 /** neighbors.cpp
- *  29 Oct 2009--07 Jun 2010
+ *  29 Oct 2009--14 Jul 2010
  *  Neal Davis, Minas Charalambides, and Simon Jenkins
  *  
  *  This file uses MPI buffered send mode, which precludes any other portion
@@ -91,8 +91,12 @@ inline double distSqrd(Particle& p1, Particle& p2)
  */
 inline uint getNumCells(const coord_t range)
 {   static double inv3 = 1.0 / 3.0;
-    //FIXME:return floor(range * inv3);
-    return 3;/***/ }
+    static uint numCells;
+    
+    numCells = floor(range * inv3);
+    if (numCells <= 0) numCells = 1;
+    
+    return numCells; }
 
 /*  void createCells()
  *  
@@ -131,8 +135,8 @@ inline void createCells()
         m = z * numCellsZ;  if(m == numCellsZ)  m--;
         
         //  If p is on the boundary, its information will have to be tagged.
-        if (l == 0)                         checkBorder(p, myMinY);
-        else if (l == numCellsY - 1)        checkBorder(p, myMaxY);
+        checkBorder(p, myMinY);
+        checkBorder(p, myMaxY);
         
         cells[k][l][m].push_back(p);
         particles.pop_back(); } }
@@ -388,7 +392,6 @@ inline void fillMap()
         {   for(uint z = 0; z < numCellsZ; z++)
             {   for(Cell::iterator iter = cells[x][y][z].begin(); iter != cells[x][y][z].end(); iter++)
                 {   Particle& p = *iter;
-                    p.initialN  = p.countN;
                     p.onSurface = notOnSurface;
                     pmap.insert(pair<id_t, Particle>(p.id, p)); }
                 cells[x][y][z].clear(); } } } }
