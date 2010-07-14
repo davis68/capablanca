@@ -1,0 +1,62 @@
+Vital
+* report nu_+ and nu_- (by surface difference)
+* track dissolved surface as well (for redeposition) (validate and expand)
+* allow for defects + defect generator (incl. screw) (improved surface detection)
+* the nn calc needs to be validated
+* send state data in process_helpers.h
+* expand the radius slightly (1.2?)
+* track random seed
+* clean up warnings and uint/int comparisons
+* combine process_helpers.h and process.cpp
+* fix half-layers in fcc/bcc in petroff
+* figure out visualization (now using VMD)
+  set "make all" to "make optimized" by default
+/ check uint/int comparisons in for statements (by max value type) in all files
+* validate surface expansion functions
+  
+
+Small-scale
+* incorporate better UPRNG/validation of ergodicity of rng-->convert to use Boost uniform_01
+* find better optimal nn cell size (fails if cells too small for any particles)
+x set edges to 12 automatically
+* standardize file names and includes
+  re-examine message passing in readXYZ() (& dropped particle)
+/ re-examine message passing in neighbors.cpp (but maintain bsend?)
+x convert to use iterators, not indices of vectors
+* add error-catching to input.cpp readxyz.cpp statistics.cpp
+* update file formatting to make it uniform
+* free allocated memory throughout
+* check for previous addition of neighbors and simplify neighbor structure (for now)
+  add simple particle output to stream function
+  
+
+Medium
+x single-processor mode (MPI_PROC_NULL)
+  output types beyond xyz (cfg, pdb)
+* test VMD or AtomEye
+  dynamic temperature support
+* dynamic findMaxNN()
+  state dump/load for large simulations
+x convert completely to STL
+  streamline error handling
+  more general rules (esp for diff species)
+  review original ppproj2009 for correct attributions of code
+  make cyclicality a possibility
+s check all sides for surface within SURFACE_CUTOFF
+x separate warning and error symbols
+  write sstream-accepting particle output procedure in particle.h to simplify xyz output
+  
+
+Wishlisted
+  allow MD/MC particle motion w/ periodic recalculation of nn
+  generalized proc topology rather than slices?
+  
+  load particles on one proc?
+  matrix problem?
+  
+Test the readXYZ() dropped particle thing to see if it's in the reading (try the 27 particles in test.xyz).
+What statistics do we wish to collect?
+
+The problem seems to be in what is a boundary particle (are any in this system?) and how the neighbors of those
+are added to the surface.  Thus I need to check the boundary particle surface expansion now.
+
