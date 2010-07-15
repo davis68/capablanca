@@ -49,7 +49,7 @@ void outputHelp()
          << "  -i Τ              specify Τ steps between output files;" << endl
          << "  -p DATAFILE.XYZ   specify particle position file;" << endl
          << "  -r RULE_SET.RS    specify rule set file;" << endl
-         << "  -T ϑ                         specify temperature ϑ;" << endl
+         << "  -T ϑ              specify temperature ϑ;" << endl
          << "  -t τ              specify τ time steps to run;" << endl
          << "  -V                use verbose output;" << endl
          << "  -v                display version information." << endl; }

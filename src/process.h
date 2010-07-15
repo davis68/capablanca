@@ -1,5 +1,5 @@
 /** process.h
- *  29 Oct 2009--14 Jun 2010
+ *  29 Oct 2009--15 Jul 2010
  *  Minas Charalambides and Neal Davis
  *  
  */
@@ -45,9 +45,10 @@ void process();
 /*  uniformRand()
  *  
  *  Return a uniform random number (uses Boost library uniform_01).
+ *  See http://www.bnikolic.co.uk/blog/cpp-boost-uniform01.html
  */
 static inline double uniformRand()
-{   static boost::mt19937 rng(ranseed);
+{   boost::mt19937 rng(ranseed);
     static boost::uniform_01<boost::mt19937> zeroOne(rng);
     return zeroOne(); }
 
