@@ -1,5 +1,5 @@
 /** statistics.cpp
- *  29 Oct 2009--02 Jun 2010
+ *  29 Oct 2009--15 Jul 2010
  *  Neal Davis
  *  
  */
@@ -7,7 +7,6 @@
 #include <fstream>
 #include <iostream>
 #include <mpi.h>
-#include <numeric> //FIXME
 #include <cstdio>
 #include <cstdlib>
 #include <sys/stat.h> 
@@ -40,17 +39,19 @@ extern int  rank,
 
 extern ParticleMap      pmap;
 
-extern list<Particle*>  surfaceA;
-extern list<Particle*>  surfaceB;
+extern list<Particle*>  surfaceA,
+                        surfaceB;
 
-extern uint *oldParticleCount;
-extern uint *newParticleCount;
-extern uint *myParticleCount;
+extern uint *oldParticleCount,
+            *newParticleCount,
+            *myParticleCount;
 extern Vector   rates;
 extern uint     initialTotalParticles;
 
 //  Global variables
-static uint oldTotalAtoms, newTotalAtoms;
+static uint oldTotalAtoms,
+            newTotalAtoms,
+            newDissolnAtoms;
 
 /*  bool fileExists()
  *  
@@ -60,12 +61,9 @@ bool fileExists(char* fileName)
 {   //  Attempt to get the file attributes.
     struct stat stFileInfo; 
     int intStat = stat(fileName, &stFileInfo); 
-    if(intStat == 0)
-    //  The file exists.
-    {   return true; }
-    else
-    //  The file does not exist, or we do not have permission to access it.
-    {   return false; } }
+    
+    if (!intStat)   return true;    //  The file exists.
+    else            return false; } //  The file does not exist, or we do not have permission to access it.
 
 /** outputSurface()
  *  
@@ -87,7 +85,9 @@ void outputSurface(list<Particle*> particles, uint t)
         for (list<Particle*>::iterator iter = particles.begin(); iter != particles.end(); iter++)
         {   outDataFile << (*iter)->state << "\t" << (*iter)->x << "\t"
                         << (*iter)->y     << "\t" << (*iter)->z << endl; }
+        
         outDataFile.close(); }
+    
     catch (...)
     {   char err[64];
         sprintf(err, "⚠ Unable to write output file %s.", outDataFileName);
@@ -110,13 +110,13 @@ void outputToFile(uint t, uint totalAtoms)
     try
     {   //  Output non-dissolved particle positions to files which will later be collected.
         if (!rank) outDataFile << totalAtoms << endl;
-        uint numNN;
         for (ParticleMap::iterator iter = pmap.begin(); iter != pmap.end(); iter++)
         {   if (iter->second.state >= dissolnStates) continue;
-            numNN = accumulate(iter->second.countN.begin(), iter->second.countN.begin() + dissolnStates, 0);
             outDataFile << iter->second.state << "\t" << iter->second.x << "\t"
                         << iter->second.y     << "\t" << iter->second.z << endl; }
+        
         outDataFile.close(); }
+    
     catch (...)
     {   char err[64];
         sprintf(err, "⚠ Unable to write output file %s.", outDataFileName);
@@ -125,12 +125,13 @@ void outputToFile(uint t, uint totalAtoms)
     static fstream  statFile;
     static char     statFileName[36];
     if (!rank)
-    {   sprintf(statFileName, "N=%d.dat", initialTotalParticles);
+    {   sprintf(statFileName, "N=%d.csv", initialTotalParticles);
         
         //  Check to make sure the file doesn't already exist, as we'll append to it.
         if (t == 0 && fileExists(statFileName))
         {   try
             {   remove(statFileName); }
+            
             catch(...)
             {   char err[64];
                 sprintf(err, "⚠ Unable to delete statistics file %s from previous program run.", statFileName);
@@ -143,13 +144,15 @@ void outputToFile(uint t, uint totalAtoms)
             error(err); }
         
         try
-        {   if (t == 0)
-            {   statFile << "random seed," << ranseed << endl; }
+        {   if (!t) statFile << "random seed," << ranseed << endl;
+            
             statFile << t << ",";
             for (Vector::iterator iter = rates.begin(); iter != rates.end(); iter++)
             {   statFile << *iter << ","; }
             statFile << surfaceA.size() << "," << surfaceB.size() << endl;
+            
             statFile.close(); }
+        
         catch (...)
         {   char err[64];
             sprintf(err, "⚠ Unable to write statistics file %s.", statFileName);
@@ -160,26 +163,28 @@ void outputToFile(uint t, uint totalAtoms)
  *  Output the system configuration and empirical calculations to disk.
  */
 void collateStatistics(uint t)
-{   //  Get number of each particles in each state across this and all processes.
+{   //  Clear the variables.
     for (uint i = 0; i < numStates; i++)
-    {   if (rank == 0) oldParticleCount[i] = newParticleCount[i];
+    {   if (!rank)  oldParticleCount[i] = newParticleCount[i];
         myParticleCount[i] = 0; }
     
     //  Count the total of particles in each state.
     for (ParticleMap::iterator iter = pmap.begin(); iter != pmap.end(); iter++)
     {   myParticleCount[iter->second.state]++; }
-    MPI_Reduce(myParticleCount, newParticleCount, 1, MPI_UNSIGNED, MPI_SUM, 0, MPI_COMM_WORLD);
+    MPI_Reduce(myParticleCount, newParticleCount, numStates, MPI_UNSIGNED, MPI_SUM, 0, MPI_COMM_WORLD);
     
-    //  Get the total number of (non-dissolved) atoms in the system.
-    oldTotalAtoms = newTotalAtoms;
-    newTotalAtoms = 0;
+    //  Get the total number of atoms in the system.
+    oldTotalAtoms   = newTotalAtoms;
+    newTotalAtoms   = 0;
+    newDissolnAtoms = 0;
     for (uint i = 0; i < dissolnStates; i++)
     {   newTotalAtoms += newParticleCount[i]; }
+    for (uint i = 0; i < numStates; i++)
+    {   newDissolnAtoms += newParticleCount[i]; }
     
     //  Calculate rates if data exist.
     for (uint i = 0; i < numStates; i++)
     {   rates[i] = (double) newParticleCount[i] - (double) oldParticleCount[i]; }
-    //FIXME:why rates seem to be wrong or zero always
     
     //  Write the system configuration and statistics to disk.
     outputToFile(t, newTotalAtoms); }
@@ -227,6 +232,7 @@ void collectStatFiles()
                 remove(inFileName); } }
         
         allFile.close(); }
+    
     catch (...)
     {   char err[64];
         sprintf(err, "⚠ Unable to collate position data to file %s.", allFileName);
