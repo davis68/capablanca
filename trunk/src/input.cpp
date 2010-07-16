@@ -28,7 +28,8 @@ extern uint     numStates,
                 maxNN;
 extern double   T,
                 phi;
-extern Reaction *rxn;
+extern Reaction *rxnA,
+                *rxnB;
 
 extern int      outputInterval,
                 tmax;
@@ -73,7 +74,8 @@ void loadRules()
     try
     {   //  Set number of rules and states.
         ruleFile >> numRules >> numStates >> dissolnStates;
-        rxn = new Reaction[numStates];
+        rxnA = new Reaction[numStates];
+        rxnB = new Reaction[numStates];
         
         //  Load parameters for each rule.
         char    tempStr[32];
@@ -83,9 +85,15 @@ void loadRules()
             ruleFile >> tempStr;
             //  Input the appropriate parameters for this reaction.
             ruleFile >> state;
-            ruleFile >> rxn[state].prefactor >> rxn[state].alpha >> rxn[state].E_s
-                     >> rxn[state].E_r >> rxn[state].z >> rxn[state].newState;
-            rxn[state].beta = 1 - rxn[state].alpha; }
+            ruleFile >> rxnA[state].prefactor >> rxnA[state].alpha >> rxnA[state].E_s
+                     >> rxnA[state].E_r >> rxnA[state].z >> rxnA[state].newState;
+            rxnB[rxnA[state].newState].prefactor = rxnA[state].prefactor;
+            rxnB[rxnA[state].newState].alpha     = 1.0 - rxnA[state].alpha;
+            rxnB[rxnA[state].newState].E_s       = rxnA[state].E_s;
+            rxnB[rxnA[state].newState].E_r       = rxnA[state].E_r;
+            rxnB[rxnA[state].newState].z         = rxnA[state].z;
+            rxnB[rxnA[state].newState].newState  = state; }
+        
         ruleFile.close(); }
     catch (...)
     {   char err[64];

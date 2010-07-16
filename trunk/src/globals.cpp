@@ -1,6 +1,5 @@
 /** globals.cpp
- *  29 Oct 2009--07 Jun 2010
- *  Neal Davis
+ *  29 Oct 2009--16 Jun 2010
  */
 
 #include <list>
@@ -27,7 +26,8 @@ uint    numStates,      //  Init in input.cpp loadRules()
         maxNN;          //  Init in input.cpp loadRules()
 double  T,              //  Init in input.cpp parseInput() or loadConfig()
         phi;            //  Init in input.cpp parseInput() or loadConfig()
-Reaction   *rxn;        //  Init in input.cpp loadRules() | Freed in main.cpp main()
+Reaction   *rxnA,       //  Init in input.cpp loadRules() | Freed in main.cpp main()
+           *rxnB;       //  Init in input.cpp loadRules() | Freed in main.cpp main()
 
 //  Simulation parameters.
 uint    outputInterval, //  Init in input.cpp parseInput() or loadConfig()

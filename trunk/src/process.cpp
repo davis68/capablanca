@@ -33,7 +33,8 @@ extern uint numStates,
 
 extern double       T,
                     phi;
-extern Reaction    *rxn;
+extern Reaction    *rxnA,
+                   *rxnB;
 
 extern uint outputInterval,
             tmax,
@@ -126,9 +127,6 @@ void process()
  *  
  *  As there are only maxNN discrete states permissible for any given
  *  temperature, pre-calculate the probabilities for each arrangement.
- *  See for details:  Alekseev Yu V, Alekseev G Yu, Bityurin V A. (2002).
- *  Atomic--topological and statistical background for a correct dissolution
- *  theory of crystal substances. Protection of Metals.  38(6):517-529.
  *  
  *  The probabilities of transition are stored in the globally-linked variables
  *  probA and probB, with the first index iterating over the number of states
@@ -140,20 +138,20 @@ inline void calcProbs()
     //  Calculate values for each state and nn condition.
     for (uint i = 0; i < numStates; i++)
     {   for (uint j = 0; j < maxNN; j++)
-        {   probA[i][j] = rxn[i].prefactor
-                        * exp(-rxn[i].alpha * j * rxn[i].E_s      / (k_B * T))
-                        * exp(-rxn[i].alpha     * rxn[i].E_r      / (k_B * T))
-                        * exp(-rxn[i].alpha * rxn[i].z * ec * phi / (k_B * T)); } }
+        {   probA[i][j] = rxnA[i].prefactor
+                        * exp(-rxnA[i].alpha * j * rxnA[i].E_s      / (k_B * T))
+                        * exp(-rxnA[i].alpha     * rxnA[i].E_r      / (k_B * T))
+                        * exp(-rxnA[i].alpha * rxnA[i].z * ec * phi / (k_B * T)); } }
     
     /// Deposition:
     probB.resize(numStates, vector<double>(maxNN, 0.0));
     //  Calculate values for each state and nn condition.
     for (uint i = 0; i < numStates; i++)
     {   for (uint j = 0; j < maxNN; j++)
-        {   probB[i][j] = rxn[i].prefactor
-                        * exp(rxn[i].beta * j * rxn[i].E_s      / (k_B * T))
-                        * exp(rxn[i].beta     * rxn[i].E_r      / (k_B * T))
-                        * exp(rxn[i].beta * rxn[i].z * ec * phi / (k_B * T)); } } }
+        {   probB[i][j] = rxnB[i].prefactor
+                        * exp(rxnB[i].alpha * j * rxnB[i].E_s      / (k_B * T))
+                        * exp(rxnB[i].alpha    * rxnB[i].E_r      / (k_B * T))
+                        * exp(rxnB[i].alpha * rxnB[i].z * ec * phi / (k_B * T)); } } }
 
 /** findSurface()
  *  
@@ -228,7 +226,7 @@ void transitionParticle(Particle* ptr)
         if (uniformRand() < probA[ptr->state][numNN])
         {   //  Set the particle states.
             oldState    = ptr->state;
-            newState    = rxn[ptr->state].newState;
+            newState    = rxnA[ptr->state].newState;
             ptr->state  = newState;
             
             //  Queue the particle so that the neighbors can be updated.
@@ -239,9 +237,9 @@ void transitionParticle(Particle* ptr)
         if (uniformRand() < probB[ptr->state][numNN])
         {   //  Set the particle states.
             oldState    = ptr->state;
-            newState    = rxn[ptr->state].newState;
+            newState    = rxnB[ptr->state].newState;
             ptr->state  = newState;
-            
+            //TODO:fix updateState for deposition case
             //  Queue the particle so that the neighbors can be updated.
             if (ptr->onBoundary) updateBoundaryParticle(ptr, oldState, newState);
             else                 updateInternalParticle(ptr, oldState, newState); } } }

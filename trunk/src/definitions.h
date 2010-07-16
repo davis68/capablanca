@@ -1,5 +1,5 @@
 /** process.h
- *  29 Oct 2009--12 Jul 2010
+ *  29 Oct 2009--15 Jul 2010
  */
 #ifndef _DEFINITIONS_H
 #define _DEFINITIONS_H
@@ -19,7 +19,7 @@ typedef vector<double>  Vector;
 typedef vector<Vector>  Matrix;
 
 //  Input defaults.
-#define PROGRAM_VERSION "0.7"           //  version of this code
+#define PROGRAM_VERSION "0.8.0"         //  version of this code
 #define CONF_FILENAME   "standard.conf" //  the default configuration file name
 #define RULE_FILENAME   "rules.rs"      //  the default rule set file name
 #define DATA_FILENAME   "particles.xyz" //  the default file name of generated data
@@ -42,7 +42,6 @@ struct Reaction
             E_s,
             E_r,
             alpha,
-            beta,
             z;
     state_t newState; };
 
