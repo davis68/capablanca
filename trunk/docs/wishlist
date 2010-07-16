@@ -13,6 +13,9 @@ Vital
   set "make all" to "make optimized" by default
 / check uint/int comparisons in for statements (by max value type) in all files
 * validate surface expansion functions
+* add deposition rule set
+    differentiate prefactors and energies for deposition
+  fix initial surface-finding routine to something that's more general
   
 
 Small-scale
@@ -27,6 +30,7 @@ x convert to use iterators, not indices of vectors
 * update file formatting to make it uniform
 * free allocated memory throughout
 * check for previous addition of neighbors and simplify neighbor structure (for now)
+  fix up makefile
   
 
 Medium
@@ -38,9 +42,9 @@ x single-processor mode (MPI_PROC_NULL)
   state dump/load for large simulations
 x convert completely to STL
   streamline error handling
-  more general rules (esp for diff species)
+  more general rules (esp for diff species or multiple kinetic regimes)
   review original ppproj2009 for correct attributions of code
-  make cyclicality a possibility
+* make cyclicality a possibility
 s check all sides for surface within SURFACE_CUTOFF
 x separate warning and error symbols
 x write sstream-accepting particle output procedure in particle.h to simplify xyz output
@@ -52,6 +56,8 @@ Wishlisted
   
   load particles on one proc?
   matrix problem?
+  
+  contact Bill Tuohy re termination of 1.0.0 version
   
 Test the readXYZ() dropped particle thing to see if it's in the reading (try the 27 particles in test.xyz).
 What statistics do we wish to collect?
