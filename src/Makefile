@@ -1,9 +1,12 @@
 all: main.o globals.o readxyz.o neighbors.o process.o error.o input.o statistics.o
-	mpicxx -o capablanca main.o globals.o readxyz.o neighbors.o process.o error.o input.o statistics.o
+	mpicxx -Os -o capablanca main.o globals.o readxyz.o neighbors.o process.o error.o input.o statistics.o
 	rm -f *.o *.gch
 
 optimized: main.o globals.o readxyz.o neighbors.o process.o error.o input.o statistics.o
 	mpicxx -Os -o capablanca main.o globals.o readxyz.o neighbors.o process.o error.o input.o statistics.o
+
+unoptimized: main.o globals.o readxyz.o neighbors.o process.o error.o input.o statistics.o
+	mpicxx -o capablanca main.o globals.o readxyz.o neighbors.o process.o error.o input.o statistics.o
 
 globals.o: globals.cpp
 	mpicxx -c globals.cpp
