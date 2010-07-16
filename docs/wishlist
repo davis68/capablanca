@@ -27,6 +27,7 @@ x convert to use iterators, not indices of vectors
 * update file formatting to make it uniform
 * free allocated memory throughout
 * check for previous addition of neighbors and simplify neighbor structure (for now)
+  add simple particle output to stream function
   
 
 Medium
@@ -43,7 +44,7 @@ x convert completely to STL
   make cyclicality a possibility
 s check all sides for surface within SURFACE_CUTOFF
 x separate warning and error symbols
-x write sstream-accepting particle output procedure in particle.h to simplify xyz output
+  write sstream-accepting particle output procedure in particle.h to simplify xyz output
   
 
 Wishlisted
@@ -55,4 +56,7 @@ Wishlisted
   
 Test the readXYZ() dropped particle thing to see if it's in the reading (try the 27 particles in test.xyz).
 What statistics do we wish to collect?
+
+The problem seems to be in what is a boundary particle (are any in this system?) and how the neighbors of those
+are added to the surface.  Thus I need to check the boundary particle surface expansion now.
 
