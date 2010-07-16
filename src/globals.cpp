@@ -33,7 +33,8 @@ Reaction   *rxnA,       //  Init in input.cpp loadRules() | Freed in main.cpp ma
 uint    outputInterval, //  Init in input.cpp parseInput() or loadConfig()
         tmax,           //  Init in input.cpp parseInput() or loadConfig()
         ranseed;        //  Init in process.cpp process()
-bool    deposition;     //  Init in input.cpp parseInput()
+bool    cyclical,       //  Init in input.cpp parseInput()
+        deposition;     //  Init in input.cpp parseInput()
 
 //  Calculation variables.
 vector<vector<double> > probA;      //  Init in process.cpp calcProbs()

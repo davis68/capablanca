@@ -33,7 +33,8 @@ extern Reaction *rxnA,
 
 extern int      outputInterval,
                 tmax;
-extern bool     deposition;
+extern bool     cyclical,
+                deposition;
 
 extern int      rank;
 
@@ -44,6 +45,7 @@ void outputHelp()
          << "that the terminal support Unicode UTF-8 or higher." << endl << endl
          << "Usage:  " << progName << " [OPTION]..." << endl << endl
          << "  -c CONFIG.CFG     specify configuration file;" << endl
+         << "  -C                make problem cyclical in x- and y-directions;" << endl
          << "  -d                suppress deposition;" << endl
          << "  -h                display this help message;" << endl
          << "  -E φ              specify potential φ;" << endl
@@ -144,6 +146,7 @@ void parseInput(const int argc, char** argv)
     ruleFileName= new char[32];
     dataFileName= new char[32];
     verbose     = false;
+    cyclical    = false;
     deposition  = true;
     
     bool    confFlag = false,
@@ -172,6 +175,10 @@ void parseInput(const int argc, char** argv)
                     val = strtok(argv[i++], " ,");
                     confFileName = val;
                     confFlag = true;
+                    break;
+                    
+                case 'C':   //  Make the problem cyclical in x- and y-directions.
+                    cyclical = true;
                     break;
                     
                 case 'd':   //  Suppress deposition.
