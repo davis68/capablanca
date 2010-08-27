@@ -6,6 +6,7 @@
 void findMaxNN();
 void checkBorder(Particle& p, const coord_t y);
 double distSqrd(Particle& p1, Particle& p2);
+double distSqrdCyc(Particle& p1, Particle& p2);
 
 uint getNumCells(const coord_t range);
 void createCells();
@@ -17,6 +18,9 @@ void findLocalNeighbors();
 void findRemoteNeighbors();
 
 void fillMap();
+
+bool loadNeighbors();
+void outputNeighbors();
 
 void calculateNeighbors();
 

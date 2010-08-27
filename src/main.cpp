@@ -1,6 +1,5 @@
 /** main.cpp
- *  29 Oct 2009--07 Jun 2010
- *  Neal Davis
+ *  29 Oct 2009--28 Jul 2010
  *  
  *  capablanca Transition Machine
  *  Neal Davis with contributions by Minas Charalambides, Bill Tuohy, Simon
@@ -10,8 +9,11 @@
  *      transitions; output broken.
  *  0.2 Added CLI parameters.
  *  0.5 Rewrite of basic functions for expanded rule interactions.
- *  0.6 First completely working version.
- *  0.7 Dissolved (deposition) surface and rules added.
+ *  0.6 First completely working version, but surface issues.
+ *  0.7 Dissolved (deposition) surface and rules added; surface correctly
+ *      functions for dissolution of simple cubic.
+ *  0.8 Cyclicality added as an option; rule set file format changed; random
+ *      seed CLI input.
  */
 
 #include <iostream>
@@ -19,7 +21,7 @@
 #include <cstdlib>
 
 #include "definitions.h"
-#include "error.h"
+//#include "error.h"
 #include "input.h"
 #include "neighbors.h"
 #include "particle.h"
@@ -42,6 +44,10 @@ extern char *progName,
             *ruleFileName,
             *dataFileName;
 
+/*  int main()
+ *  
+ *  Main program module.
+ */
 int main(int argc, char** argv)
 {   //  Perform MPI-required initialization.
     MPI_Init(&argc, &argv);
@@ -78,7 +84,7 @@ int main(int argc, char** argv)
     //  Collate data.
     if (!rank)
     {   double collTime = -MPI_Wtime();
-        FIXME:collectStatFiles();
+        collectStatFiles();
         collTime += MPI_Wtime();
         cout << "✇ Data output collated and finalized in " << collTime << " s.\n"; }
     

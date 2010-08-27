@@ -7,9 +7,10 @@
 #include <fstream>
 #include <iostream>
 #include <mpi.h>
+#include <numeric>
 #include <cstdio>
 #include <cstdlib>
-#include <sys/stat.h> 
+#include <sys/stat.h>
 #include <vector>
 
 #include "definitions.h"
@@ -106,14 +107,17 @@ void outputToFile(uint t, uint totalAtoms)
     {   char err[64];
         sprintf(err, "⚠ Unable to load file %s", outDataFileName);
         error(err); }
-    
+    uint numNN; //FIXME
     try
     {   //  Output non-dissolved particle positions to files which will later be collected.
         if (!rank) outDataFile << totalAtoms << endl;
         for (ParticleMap::iterator iter = pmap.begin(); iter != pmap.end(); iter++)
         {   if (iter->second.state >= dissolnStates) continue;
-            outDataFile << iter->second.state << "\t" << iter->second.x << "\t"
-                        << iter->second.y     << "\t" << iter->second.z << endl; }
+            numNN = accumulate(iter->second.countN.begin(), iter->second.countN.begin() + dissolnStates, 0);
+            outDataFile << numNN << "\t" << iter->second.x << "\t"
+                        << iter->second.y     << "\t" << iter->second.z << endl; }/***/
+            /*outDataFile << iter->second.state << "\t" << iter->second.x << "\t"
+                        << iter->second.y     << "\t" << iter->second.z << endl; }/***/
         
         outDataFile.close(); }
     

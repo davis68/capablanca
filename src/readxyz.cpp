@@ -51,8 +51,8 @@ int interval,
 /*  getProc(coord_t y)
  *  
  *  Assign the node number for a particle based on its y coordinate.  Normalize
- *  to Y range and scale to number of nodes, convert to int.  Check for exactly
- *  equality to the upper limit so the integer isn't bigger than highest rank.
+ *  to Y range and scale to number of nodes.  Check for exact equality to the
+ *  upper limit so the integer isn't bigger than highest rank.
  */
 unsigned int getProc(coord_t y)
 {   coord_t range   = maxY - minY,
@@ -67,8 +67,7 @@ unsigned int getProc(coord_t y)
  *  Generate a unique ID for a given particle based on the rank.
  */
 int assignID()
-{   //TODO:static int idCount = 0;
-    return (rank * interval + idCount++); }
+{   return (rank * interval + idCount++); }
 
 /*  void setMinMax()
  *  
@@ -147,7 +146,7 @@ void readXYZ()
         
         //  Get interval as estimated number of particles plus one thousand.
         int bytesInFile = fileEndPtr - fileStartPtr,
-            numParticlesInFile = bytesInFile / (34 * sizeof(char)); //*** validate
+            numParticlesInFile = bytesInFile / (34 * sizeof(char)); //***TODO validate
         interval = numParticlesInFile / size + 1000;
         
         while(ftell(xyzFile) != fileEndPtr)
