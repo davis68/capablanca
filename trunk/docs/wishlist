@@ -1,53 +1,62 @@
 Vital
-* report nu_+ and nu_- (by surface difference)
-* track dissolved surface as well (for redeposition) (validate and expand)
-* allow for defects + defect generator (incl. screw) (improved surface detection)
-* the nn calc needs to be validated
-* send state data in process_helpers.h
-* expand the radius slightly (1.2?)
-* track random seed
-* clean up warnings and uint/int comparisons
-* combine process_helpers.h and process.cpp
-* fix half-layers in fcc/bcc in petroff
-* figure out visualization (now using VMD)
+✔ report nu_+ and nu_- (by surface difference)
+✔ track dissolved surface as well (for redeposition) (validate and expand)
+✔ allow for defects + defect generator (incl. screw) (improved surface detection)
+✔ the nn calc needs to be validated
+✔ send state data in process_helpers.h
+✔ expand the radius slightly (1.2?)
+✔ track random seed
+✔ clean up warnings and uint/int comparisons
+✔ combine process_helpers.h and process.cpp
+✔ fix half-layers in fcc/bcc in petroff
+✔ figure out visualization (now using VMD)
   set "make all" to "make optimized" by default
-/ check uint/int comparisons in for statements (by max value type) in all files
-* validate surface expansion functions
-* add deposition rule set
-    differentiate prefactors and energies for deposition
-  fix initial surface-finding routine to something that's more general
+∼ check uint/int comparisons in for statements (by max value type) in all files
+✔ validate surface expansion functions
+✔ add deposition rule set, differentiating prefactors and energies for deposition
+✔ auto-detect lattice type
+✔ fix initial surface-finding routine to something that's more general
+  fix fcc/bcc nn count
+  turn off initial surfaceB in ruylopez/petroff
+  
+  create orthorhombic settings for ruylopez & petroff
+  create vacancy defect generator
+  
   
 
 Small-scale
-* incorporate better UPRNG/validation of ergodicity of rng-->convert to use Boost uniform_01
-* find better optimal nn cell size (fails if cells too small for any particles)
-x set edges to 12 automatically
-* standardize file names and includes
+✔ incorporate better UPRNG/validation of ergodicity of rng-->convert to use Boost uniform_01
+✔ find better optimal nn cell size (fails if cells too small for any particles)
+✗ set edges to 12 automatically
+✔ standardize file names and includes
   re-examine message passing in readXYZ() (& dropped particle)
-/ re-examine message passing in neighbors.cpp (but maintain bsend?)
-x convert to use iterators, not indices of vectors
-* add error-catching to input.cpp readxyz.cpp statistics.cpp
-* update file formatting to make it uniform
-* free allocated memory throughout
-* check for previous addition of neighbors and simplify neighbor structure (for now)
+∼ re-examine message passing in neighbors.cpp (but maintain bsend?)
+✗ convert to use iterators, not indices of vectors
+✔ add error-catching to input.cpp readxyz.cpp statistics.cpp
+✔ update file formatting to make it uniform
+✔ free allocated memory throughout
+✔ check for previous addition of neighbors and simplify neighbor structure (for now)
   fix up makefile
+✔ allow CLI specification of random seed
+  test suite batch file
+✔ output nn-list for previously processed xyz files
+✔ add forced recalculation of nearest neighbor lists flag
   
 
 Medium
-x single-processor mode (MPI_PROC_NULL)
+✗ single-processor mode (MPI_PROC_NULL)
   output types beyond xyz (cfg, pdb)
-* test VMD or AtomEye
+✔ test VMD or AtomEye
   dynamic temperature support
-* dynamic findMaxNN()
+✔ dynamic findMaxNN()
   state dump/load for large simulations
-x convert completely to STL
+✗ convert completely to STL
   streamline error handling
   more general rules (esp for diff species or multiple kinetic regimes)
   review original ppproj2009 for correct attributions of code
-* make cyclicality a possibility
-s check all sides for surface within SURFACE_CUTOFF
-x separate warning and error symbols
-x write sstream-accepting particle output procedure in particle.h to simplify xyz output
+✔ make cyclicality a possibility
+✗ separate warning and error symbols
+✗ write sstream-accepting particle output procedure in particle.h to simplify xyz output
   
 
 Wishlisted
@@ -61,4 +70,6 @@ Wishlisted
   
 Test the readXYZ() dropped particle thing to see if it's in the reading (try the 27 particles in test.xyz).
 What statistics do we wish to collect?
+
+rjq ./capablanca -d -V -i 100 -t 1000 -T 0.10 -p 10.xyz 
 

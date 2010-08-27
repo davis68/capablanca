@@ -34,7 +34,9 @@ uint    outputInterval, //  Init in input.cpp parseInput() or loadConfig()
         tmax,           //  Init in input.cpp parseInput() or loadConfig()
         ranseed;        //  Init in process.cpp process()
 bool    cyclical,       //  Init in input.cpp parseInput()
-        deposition;     //  Init in input.cpp parseInput()
+        deposition,     //  Init in input.cpp parseInput()
+        ranseedspec,    //  Init in input.cpp parseInput()
+        recalcNN;       //  Init in input.cpp parseInput()
 
 //  Calculation variables.
 vector<vector<double> > probA;      //  Init in process.cpp calcProbs()
@@ -49,6 +51,7 @@ list<Particle*>         surfaceB;   //  Init in process.cpp process()
 coord_t myMinX =  1e8, myMinY =  1e8, myMinZ =  1e8,
         myMaxX = -1e8, myMaxY = -1e8, myMaxZ = -1e8,
         minY, maxY;
+coord_t xRange, yRange, zRange;     //  Init in neighbors.cpp createCells()
 
 //  Output & statistics variables.
 uint   *oldParticleCount;       //  Init in process.cpp process() | Freed in process.cpp process()

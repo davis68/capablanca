@@ -1,5 +1,5 @@
 /** input.cpp
- *  27 Feb 2010--12 Jul 2010
+ *  27 Feb 2010--28 Jul 2010
  *  Neal Davis
  */
 
@@ -32,9 +32,12 @@ extern Reaction *rxnA,
                 *rxnB;
 
 extern int      outputInterval,
-                tmax;
+                tmax,
+                ranseed;
 extern bool     cyclical,
-                deposition;
+                deposition,
+                ranseedspec,
+                recalcNN;
 
 extern int      rank;
 
@@ -49,8 +52,10 @@ void outputHelp()
          << "  -d                suppress deposition;" << endl
          << "  -h                display this help message;" << endl
          << "  -E φ              specify potential φ;" << endl
-         << "  -i Τ              specify Τ steps between output files;" << endl
+         << "  -i Τ              specify T steps between output files;" << endl
+         << "  -n                force recalculation of nearest neighbor files;" << endl
          << "  -p DATAFILE.XYZ   specify particle position file;" << endl
+         << "  -R s              specify random seed s;" << endl
          << "  -r RULE_SET.RS    specify rule set file;" << endl
          << "  -T ϑ              specify temperature ϑ;" << endl
          << "  -t τ              specify τ time steps to run;" << endl
@@ -64,9 +69,7 @@ void outputVersion()
  *  Loads the ruleset file specified in ruleFileName.
  */
 void loadRules()
-{   uint        numRules;
-    
-    ifstream    ruleFile;
+{   ifstream    ruleFile;
     ruleFile.open(ruleFileName, ifstream::in);
     if (!ruleFile)
     {   char err[64];
@@ -75,22 +78,26 @@ void loadRules()
     
     try
     {   //  Set number of rules and states.
+        uint    numRules;
         ruleFile >> numRules >> numStates >> dissolnStates;
         rxnA = new Reaction[numStates];
         rxnB = new Reaction[numStates];
         
         //  Load parameters for each rule.
-        char    tempStr[32];
+        char    tempStr[256];
         uint    state;
+        double  tmp;
         for (uint i = 0; i < numRules; i++)
         {   //  Read and ignore comment explaining reaction.
-            ruleFile >> tempStr;
+            ruleFile.getline(tempStr, 256);
+            
             //  Input the appropriate parameters for this reaction.
             ruleFile >> state;
-            ruleFile >> rxnA[state].prefactor >> rxnA[state].alpha >> rxnA[state].E_s
+            ruleFile >> rxnA[state].prefactor >> tmp
+                     >> rxnA[state].alpha >> rxnA[state].E_s
                      >> rxnA[state].E_r >> rxnA[state].z >> rxnA[state].newState;
-            rxnB[rxnA[state].newState].prefactor = rxnA[state].prefactor;
-            rxnB[rxnA[state].newState].alpha     = 1.0 - rxnA[state].alpha;
+            rxnB[rxnA[state].newState].prefactor = tmp;
+            rxnB[rxnA[state].newState].alpha     = 1.0 - rxnA[state].alpha; //  This acts as beta.
             rxnB[rxnA[state].newState].E_s       = rxnA[state].E_s;
             rxnB[rxnA[state].newState].E_r       = rxnA[state].E_r;
             rxnB[rxnA[state].newState].z         = rxnA[state].z;
@@ -148,12 +155,14 @@ void parseInput(const int argc, char** argv)
     verbose     = false;
     cyclical    = false;
     deposition  = true;
+    ranseedspec = false;
+    recalcNN    = false;
     
     bool    confFlag = false,
             ruleFlag = false,
             dataFlag = false;
     
-    progName = new char[32];
+    progName = new char[12];
     progVers = new char[8];
     strcpy(progName, "capablanca");
     strcpy(progVers, PROGRAM_VERSION);
@@ -202,10 +211,20 @@ void parseInput(const int argc, char** argv)
                     outputInterval = atoi(val);
                     break;
                     
+                case 'n':   //  Force recalculation of nearest neighbor list.
+                    recalcNN = true;
+                    break;
+                    
                 case 'p':   //  Particle position file specified.
                     val = strtok(argv[i++], " ,");
                     dataFileName = val;
                     dataFlag = true;
+                    break;
+                    
+                case 'R':   //  Random seed specified.
+                    val = strtok(argv[i++], " ,");
+                    ranseed = atoi(val);
+                    ranseedspec = true;
                     break;
                     
                 case 'r':   //  Rule set file specified.

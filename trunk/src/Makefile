@@ -33,5 +33,5 @@ statistics.o: statistics.cpp
 	mpicxx -c statistics.cpp
 
 clean:
-	rm -f *.o *.gch capablanca core* *.xyz_temp *.dat_temp surface*.xyz N=*
+	rm -f *.o *.gch capablanca core* *.xyz_temp *.dat_temp surface*.xyz N=* *.nn
 

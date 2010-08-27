@@ -39,7 +39,8 @@ extern Reaction    *rxnA,
 extern uint outputInterval,
             tmax,
             ranseed;
-extern bool deposition;
+extern bool deposition,
+            ranseedspec;
 
 extern int  rank,
             size;
@@ -81,7 +82,7 @@ void process()
 {   calcProbs();
     findSurface();
     
-    ranseed = 43; //FIXME:(unsigned int) time(0);
+    if (!ranseedspec) ranseed = (unsigned int) time(0);
     oldParticleCount= new uint[numStates];
     newParticleCount= new uint[numStates];
     myParticleCount = new uint[numStates];
@@ -140,7 +141,7 @@ inline void calcProbs()
     {   for (uint j = 0; j < maxNN; j++)
         {   probA[i][j] = rxnA[i].prefactor
                         * exp(-rxnA[i].alpha * j * rxnA[i].E_s      / (k_B * T))
-                        * exp(-rxnA[i].alpha     * rxnA[i].E_r      / (k_B * T))
+                        * exp(-rxnA[i].E_r                          / (k_B * T))
                         * exp(-rxnA[i].alpha * rxnA[i].z * ec * phi / (k_B * T)); } }
     
     /// Deposition:
@@ -150,54 +151,26 @@ inline void calcProbs()
     {   for (uint j = 0; j < maxNN; j++)
         {   probB[i][j] = rxnB[i].prefactor
                         * exp(rxnB[i].alpha * j * rxnB[i].E_s      / (k_B * T))
-                        * exp(rxnB[i].alpha    * rxnB[i].E_r      / (k_B * T))
+                        * exp(-rxnB[i].E_r                         / (k_B * T))
                         * exp(rxnB[i].alpha * rxnB[i].z * ec * phi / (k_B * T)); } } }
 
 /** findSurface()
  *  
- *  Determine the particles contiguous with those whose z-coordinate is less
- *  than SURFACE_CUTOFF from the global maximum z-coordinate and add them to the
- *  appropriate surface.
- *  
- *  Vacancy defects within SURFACE_CUTOFF of the top will be incorrectly added
- *  as part of the surface.
+ *  Determine the particles contiguous with the external surface and add them to
+ *  the appropriate surface.
  */
 void findSurface()
 {   //  Determine global maximum z-coordinate.
     coord_t  maxZ;
     MPI_Allreduce(&myMaxZ, &maxZ, 1, MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD);
     
-    //  Add particles within SURFACE_CUTOFF of the global maximum z-coordinate
-    //  to the appropriate surface.  (At this point, the surfaces are empty, so
-    //  we don't need to worry about removing them from any surfaces first.)
-    /*FIXME:static uint numNN;
-    for (ParticleMap::iterator iter = pmap.begin(); iter != pmap.end(); iter++)
-    {   if (maxZ - iter->second.z > SURFACE_CUTOFF) continue;
-        
-        if (!hasDissolved(&(iter->second))) placeOnSurfaceA(iter->second);
-        else                                placeOnSurfaceB(iter->second); }*/
+    //  Seed surfaceA with an initial surface particle and expand surfaces from it.
     ParticleMap::iterator mapIter;
-    //ParticleMap::iterator iter1 = pmap.begin();
-    mapIter = pmap.begin();
-    /*for (iter1 = pmap.begin(); iter1 != pmap.end(); iter1++)
-    {   if (iter1->second.) break; }*/ //TODO
-    placeOnSurfaceA(mapIter->second);
-    
-    //  Now expand the surface from these starting points.
-    for (list<Particle*>::iterator iter = surfaceA.begin(); iter != surfaceA.end(); iter++)
-    {   //  Attempt to add the neighboring particles to the surface.
-        for (int i = 0; i < (*iter)->neighbors.size(); i++)
-        {   mapIter = pmap.find((*iter)->neighbors[i]);
-            if (mapIter == pmap.end()) continue;
-            
-            expandSurfaces(mapIter->second); } }
-    for (list<Particle*>::iterator iter = surfaceB.begin(); iter != surfaceB.end(); iter++)
-    {   //  Attempt to add the neighboring particles to the surface.
-        for (int i = 0; i < (*iter)->neighbors.size(); i++)
-        {   mapIter = pmap.find((*iter)->neighbors[i]);
-            if (mapIter == pmap.end()) continue;
-            
-            expandSurfaces(mapIter->second); } } }
+    uint numNN;
+    for (mapIter = pmap.begin(); mapIter != pmap.end(); mapIter++)
+    {   numNN = accumulate(mapIter->second.countN.begin(), mapIter->second.countN.begin() + dissolnStates, 0);
+        if (numNN < maxNN && !hasDissolved(&(mapIter->second))) break; }
+    expandSurfaces(mapIter->second); }
 
 /** resetVariables()
  *
@@ -239,7 +212,7 @@ void transitionParticle(Particle* ptr)
             oldState    = ptr->state;
             newState    = rxnB[ptr->state].newState;
             ptr->state  = newState;
-            //TODO:fix updateState for deposition case
+            
             //  Queue the particle so that the neighbors can be updated.
             if (ptr->onBoundary) updateBoundaryParticle(ptr, oldState, newState);
             else                 updateInternalParticle(ptr, oldState, newState); } } }
@@ -419,7 +392,6 @@ void packSurface()
     {   for (vector<uint>::iterator iter1 = (*iter)->neighbors.begin(); iter1 != (*iter)->neighbors.end(); iter1++)
         {   mapIter = pmap.find(*iter1);
             if (mapIter == pmap.end()) continue;
-            
             expandSurfaces(mapIter->second); } }
     
     //  Add the neighbors of each boundary particle to the appropriate surface.
@@ -427,7 +399,6 @@ void packSurface()
     {   //  Find the current particle of interest.
         mapIter = pmap.find(recvChangesBuffer[i]);
         if (mapIter == pmap.end()) continue;
-        
         expandSurfaces(mapIter->second); }
     
     //  Remove dissolved or covered particles from surfaceA.
@@ -442,7 +413,7 @@ void packSurface()
     //  Remove deposited or detached particles from surfaceB.
     for (list<Particle*>::iterator iter = surfaceB.begin(); iter != surfaceB.end(); iter++)
     {   numNN = accumulate((*iter)->countN.begin(), (*iter)->countN.begin() + dissolnStates, 0);
-        if (!hasDissolved(*iter) || numNN == 0)
+        if (!hasDissolved(*iter) || !numNN)
         {   (*iter)->onSurface = notOnSurface;
             iter = surfaceB.erase(iter);
             iter--; } } }
@@ -476,7 +447,6 @@ void expandSurfaceA(Particle& p)
     if ( hasDissolved(&p))          return;
     numNN = accumulate(p.countN.begin(), p.countN.begin() + dissolnStates, 0);
     if (numNN == maxNN)             return;
-    
     placeOnSurfaceA(p);
     
     //  Attempt to add the neighboring particles to the surfaces.
