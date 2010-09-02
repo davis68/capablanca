@@ -176,10 +176,10 @@ inline double distSqrdCyc(Particle& p1, Particle& p2)
  *  Find the appropriate number of cells in a given dimension.
  */
 inline uint getNumCells(const coord_t range)
-{   static double inv3 = 1.0 / 3.0;
+{   static double inv3 = 1.0 / (6.0 * NEIGHBOR_SQUARE_CUTOFF);
     uint numCells;
     
-    numCells = floor(range * 0.25);
+    numCells = floor(range * inv3);
     if (numCells <= 0) numCells = 1;
     
     return numCells; }
@@ -232,7 +232,8 @@ void createCells()
  *  Indicate whether two particles are already neighbors to each other.
  */
 inline bool alreadyNeighbors(Particle& p1, Particle& p2)
-{   for (vector<id_t>::iterator iter = p1.neighbors.begin(); iter != p1.neighbors.end(); iter++)
+{   return false;
+    for (vector<id_t>::iterator iter = p1.neighbors.begin(); iter != p1.neighbors.end(); iter++)
     {   if (find(p2.neighbors.begin(), p2.neighbors.end(), *iter) != p2.neighbors.end()) return true; }
     
     return false; }
@@ -244,16 +245,13 @@ inline bool alreadyNeighbors(Particle& p1, Particle& p2)
 inline void makeNeighbors(Particle& p1, Particle& p2)
 {   if (alreadyNeighbors(p1, p2))   return;
     
-    static uint numNN;
-    numNN = accumulate(p1.countN.begin(), p1.countN.begin() + dissolnStates, 0);
-    if(numNN > maxNN)
+    if(p1.neighbors.size() > maxNN)
     {   char err[64];
-        sprintf(err, "Too many neighbors detected for particle %d: %d.", p1.id, numNN);
+        sprintf(err, "⚠ %d neighbors detected for particle %d at (%f, %f, %f).", p1.neighbors.size(), p1.id, p1.x, p1.y, p1.z);
         warning(err); }
-    numNN = accumulate(p2.countN.begin(), p2.countN.begin() + dissolnStates, 0);
-    if(numNN > maxNN)
+    if(p2.neighbors.size() > maxNN)
     {   char err[64];
-        sprintf(err, "Too many neighbors detected for particle %d: %d.", p2.id, numNN);
+        sprintf(err, "⚠ %d neighbors detected for particle %d at (%f, %f, %f).", p2.neighbors.size(), p2.id, p2.x, p2.y, p2.z);
         warning(err); }
     p1.neighbors.push_back(p2.id);
     p1.countN[p2.state]++;
@@ -267,11 +265,9 @@ inline void makeNeighbors(Particle& p1, Particle& p2)
 inline void makeNeighborsAffectOnlyLeft(Particle& p1, Particle& p2)
 {   if (alreadyNeighbors(p1, p2))   return;
     
-    static uint numNN;
-    numNN = accumulate(p1.countN.begin(), p1.countN.begin() + dissolnStates, 0);
-    if(numNN > maxNN)
+    if(p1.neighbors.size() > maxNN)
     {   char err[64];
-        sprintf(err, "Too many neighbors detected for particle %d: %d.", p1.id, numNN);
+        sprintf(err, "⚠ %d neighbors detected for particle %d at (%f, %f, %f).", p1.neighbors.size(), p1.id, p1.x, p1.y, p1.z);
         warning(err); }
     p1.neighbors.push_back(p2.id);
     p1.countN[p2.state]++; }
@@ -317,65 +313,59 @@ void findLocalNeighbors()
         {   for(uint k = 0; k < numCellsZ; k++)
             {   //  Find local neighbors.
                 findIntraCellNeighbors(cells[i][j][k]);
+                
                 //  Find adjacent neighbors.
-                if(i > 0) findInterCellNeighbors(cells[i][j][k],
-                                                 cells[i - 1][j][k]);
-                if(j > 0) findInterCellNeighbors(cells[i][j][k],
-                                                 cells[i][j - 1][k]);
-                if(k > 0) findInterCellNeighbors(cells[i][j][k],
-                                                 cells[i][j][k - 1]);
+                if(i > 0) findInterCellNeighbors(cells[i][j][k], cells[i - 1][j][k]);
+                if(j > 0) findInterCellNeighbors(cells[i][j][k], cells[i][j - 1][k]);
+                if(k > 0) findInterCellNeighbors(cells[i][j][k], cells[i][j][k - 1]);
+                
+                if(i > 1) findInterCellNeighbors(cells[i][j][k], cells[i - 2][j][k]);
+                if(j > 1) findInterCellNeighbors(cells[i][j][k], cells[i][j - 2][k]);
+                if(k > 1) findInterCellNeighbors(cells[i][j][k], cells[i][j][k - 2]);
+                
                 //  Find diagonal neighbors.
-                if(i > 0 && j > 0) findInterCellNeighbors(cells[i][j][k],
-                                                          cells[i - 1][j - 1][k]);
-                if(i > 0 && k > 0) findInterCellNeighbors(cells[i][j][k],
-                                                          cells[i - 1][j][k - 1]);
-                if(j > 0 && k > 0) findInterCellNeighbors(cells[i][j][k],
-                                                          cells[i][j - 1][k - 1]); } } }
+                if(i > 0 && j > 0) findInterCellNeighbors(cells[i][j][k], cells[i - 1][j - 1][k]);
+                if(i > 0 && k > 0) findInterCellNeighbors(cells[i][j][k], cells[i - 1][j][k - 1]);
+                if(j > 0 && k > 0) findInterCellNeighbors(cells[i][j][k], cells[i][j - 1][k - 1]); } } }
     
-    //  Look for new cyclical nearest neighbors.
-    if (cyclical)
-    {   //  Find neighbors cyclical in the x-direction.
-        if (numCellsX > 2)
-        {   for(uint j = 0; j < numCellsY; j++)
-            {   for(uint k = 0; k < numCellsZ; k++)
-                {   findInterCellNeighborsCyc(cells[0][j][k],
-                                              cells[numCellsX - 1][j][k]); } } }
-        //  Find neighbors cyclical in the y-direction.
-        if (numCellsY > 2)
-        {   for(uint i = 0; i < numCellsX; i++)
-            {   for(uint k = 0; k < numCellsZ; k++)
-                {   findInterCellNeighborsCyc(cells[i][0][k],
-                                              cells[i][numCellsY - 1][k]); } } } } }
+    if (!cyclical)  return;
+    
+    //  Look for new cyclical nearest neighbors in the x-direction.  The
+    //  y-direction cells neighboring those of this processor are remote.
+    if (numCellsX > 2)
+    {   for(uint j = 0; j < numCellsY; j++)
+        {   for(uint k = 0; k < numCellsZ; k++)
+            {   findInterCellNeighborsCyc(cells[0][j][k], cells[numCellsX - 1][j][k]); } } } }
 
 /** void getXSlice()
  *  
  *  Pack a slice of a cell into a buffer for messaging.
  */
-inline void getXSlice(coord_t* buffer, int& bufferSize, const uint x)
+inline void getXSlice(coord_t* buffer, int& bufferSize, const uint i)
 {   bufferSize = 0;
-    for (uint y = 0; y < numCellsY; y++)
-    {   for (uint z = 0; z < numCellsZ; z++)
-        {   for (uint i = 0; i < cells[x][y][z].size(); i++)
-            {   buffer[bufferSize++] = (coord_t) cells[x][y][z][i].id;
-                buffer[bufferSize++] =           cells[x][y][z][i].x;
-                buffer[bufferSize++] =           cells[x][y][z][i].y;
-                buffer[bufferSize++] =           cells[x][y][z][i].z;
-                buffer[bufferSize++] = (coord_t) cells[x][y][z][i].state; } } } }
+    for (uint j = 0; j < numCellsY; j++)
+    {   for (uint k = 0; k < numCellsZ; k++)
+        {   for (uint l = 0; l < cells[i][j][k].size(); l++)
+            {   buffer[bufferSize++] = (coord_t) cells[i][j][k][l].id;
+                buffer[bufferSize++] =           cells[i][j][k][l].x;
+                buffer[bufferSize++] =           cells[i][j][k][l].y;
+                buffer[bufferSize++] =           cells[i][j][k][l].z;
+                buffer[bufferSize++] = (coord_t) cells[i][j][k][l].state; } } } }
 
 /** void getYSlice()
  *  
  *  Pack a slice of a cell into a buffer for messaging.
  */
-inline void getYSlice(coord_t* buffer, int& bufferSize, const uint y)
+inline void getYSlice(coord_t* buffer, int& bufferSize, const uint j)
 {   bufferSize = 0;
-    for (uint x = 0; x < numCellsX; x++)
-    {   for (uint z = 0; z < numCellsZ; z++)
-        {   for (uint i = 0; i < cells[x][y][z].size(); i++)
-            {   buffer[bufferSize++] = (coord_t) cells[x][y][z][i].id;
-                buffer[bufferSize++] =           cells[x][y][z][i].x;
-                buffer[bufferSize++] =           cells[x][y][z][i].y;
-                buffer[bufferSize++] =           cells[x][y][z][i].z;
-                buffer[bufferSize++] = (coord_t) cells[x][y][z][i].state; } } } }
+    for (uint i = 0; i < numCellsX; i++)
+    {   for (uint k = 0; k < numCellsZ; k++)
+        {   for (uint l = 0; l < cells[i][j][k].size(); l++)
+            {   buffer[bufferSize++] = (coord_t) cells[i][j][k][l].id;
+                buffer[bufferSize++] =           cells[i][j][k][l].x;
+                buffer[bufferSize++] =           cells[i][j][k][l].y;
+                buffer[bufferSize++] =           cells[i][j][k][l].z;
+                buffer[bufferSize++] = (coord_t) cells[i][j][k][l].state; } } } }
 
 /** void checkNeighbors()
  *  
@@ -404,125 +394,124 @@ inline void checkNeighborsCyc(Cell& cell1, coord_t* data)
  *  Find neighbors on the borders between processors using MPI buffered send mode.
  */
 void findRemoteNeighbors()
-{   int     mpi_buffer_size = MAX_ARRAY_SIZE * 2 * sizeof(coord_t);
-    byte    mpi_buffer[mpi_buffer_size];
-    coord_t buffer[MAX_ARRAY_SIZE];
-    int     bufferSize;
+{   int         mpi_buffer_size = MAX_ARRAY_SIZE * 2 * sizeof(coord_t);
+    byte        mpi_buffer[mpi_buffer_size];
     MPI_Status  status;
     MPI_Request mpr1;
     
     MPI_Buffer_attach(mpi_buffer, mpi_buffer_size);
     
+    //  Exchange data from end slices of each processor and check the slices for
+    //  nearest-neighbor pairs.
+    coord_t buffer[MAX_ARRAY_SIZE];
+    int     bufferSize;
+    
     if (rank > 0)
     {   getYSlice(buffer, bufferSize, 0);
-        MPI_Ibsend(buffer, bufferSize, MPI_DOUBLE, rank - 1,
-                  bufferSize / SENT_PARTICLE_SIZE, MPI_COMM_WORLD, &mpr1); }
+        MPI_Ibsend(buffer, bufferSize, MPI_DOUBLE, rank - 1, bufferSize / SENT_PARTICLE_SIZE, MPI_COMM_WORLD, &mpr1); }
+    if (rank < size - 1)
+    {   MPI_Recv(buffer, MAX_ARRAY_SIZE, MPI_DOUBLE, rank + 1, MPI_ANY_TAG, MPI_COMM_WORLD, &status);
+        for(uint l = 0; l < (uint) status.MPI_TAG; l++)
+        {   for(uint i = 0; i < numCellsX; i++)
+            {   for(uint k = 0; k < numCellsZ; k++)
+                {   checkNeighbors(cells[i][numCellsY - 1][k], &(buffer[l * SENT_PARTICLE_SIZE])); } } } }
     if (rank < size - 1)
     {   getYSlice(buffer, bufferSize, numCellsY - 1);
-        MPI_Ibsend(buffer, bufferSize, MPI_DOUBLE, rank + 1,
+        MPI_Ibsend(buffer, bufferSize, MPI_DOUBLE, rank + 1, bufferSize / SENT_PARTICLE_SIZE, MPI_COMM_WORLD, &mpr1); }
+    if (rank > 0)
+    {   MPI_Recv(buffer, MAX_ARRAY_SIZE, MPI_DOUBLE, rank - 1, MPI_ANY_TAG, MPI_COMM_WORLD, &status);
+        for(uint l = 0; l < (uint) status.MPI_TAG; l++)
+        {   for(uint i = 0; i < numCellsX; i++)
+            {   for(uint k = 0; k < numCellsZ; k++)
+                {   checkNeighbors(cells[i][numCellsY - 1][k], &(buffer[l * SENT_PARTICLE_SIZE])); } } } }
+    
+    if (!cyclical)
+    {   MPI_Buffer_detach(mpi_buffer, &mpi_buffer_size);
+        return; }
+    
+    //  Exchange data on edges of y-plane.
+    /*if (!rank)
+    {   getYSlice(buffer, bufferSize, 0);
+        MPI_Ibsend(buffer, bufferSize, MPI_DOUBLE, size - 1,
+                  bufferSize / SENT_PARTICLE_SIZE, MPI_COMM_WORLD, &mpr1); }
+    if (rank == size - 1)
+    {   getYSlice(buffer, bufferSize, numCellsY - 1);
+        MPI_Ibsend(buffer, bufferSize, MPI_DOUBLE, 0,
                   bufferSize / SENT_PARTICLE_SIZE, MPI_COMM_WORLD, &mpr1); }
     
-    if (rank > 0)
-    {   MPI_Recv(buffer, MAX_ARRAY_SIZE, MPI_DOUBLE, rank - 1,
+    if (!rank)
+    {   MPI_Recv(buffer, MAX_ARRAY_SIZE, MPI_DOUBLE, size - 1,
                  MPI_ANY_TAG, MPI_COMM_WORLD, &status);
         for(uint i = 0; i < (uint) status.MPI_TAG; i++)
         {   for(uint x = 0; x < numCellsX; x++)
             {   for(uint z = 0; z < numCellsZ; z++)
-                {   checkNeighbors(cells[x][0][z],
-                                   &(buffer[i * SENT_PARTICLE_SIZE])); } } } }
-    if (rank < size - 1)
-    {   MPI_Recv(buffer, MAX_ARRAY_SIZE, MPI_DOUBLE, rank + 1,
+                {   checkNeighborsCyc(cells[x][0][z],
+                                      &(buffer[i * SENT_PARTICLE_SIZE])); } } } }
+    if (rank == size - 1)
+    {   MPI_Recv(buffer, MAX_ARRAY_SIZE, MPI_DOUBLE, 0,
                  MPI_ANY_TAG, MPI_COMM_WORLD, &status);
         for(uint i = 0; i < (uint) status.MPI_TAG; i++)
         {   for(uint x = 0; x < numCellsX; x++)
             {   for(uint z = 0; z < numCellsZ; z++)
-                {   checkNeighbors(cells[x][numCellsY - 1][z],
-                                   &(buffer[i * SENT_PARTICLE_SIZE])); } } } }
+                {   checkNeighborsCyc(cells[x][numCellsY - 1][z],
+                                      &(buffer[i * SENT_PARTICLE_SIZE])); } } } }
     
-    if (cyclical)
-    {   //  Exchange data on edges of y-plane.
-        /*if (!rank)
-        {   getYSlice(buffer, bufferSize, 0);
-            MPI_Ibsend(buffer, bufferSize, MPI_DOUBLE, size - 1,
-                      bufferSize / SENT_PARTICLE_SIZE, MPI_COMM_WORLD, &mpr1); }
-        if (rank == size - 1)
-        {   getYSlice(buffer, bufferSize, numCellsY - 1);
-            MPI_Ibsend(buffer, bufferSize, MPI_DOUBLE, 0,
-                      bufferSize / SENT_PARTICLE_SIZE, MPI_COMM_WORLD, &mpr1); }
-        
-        if (!rank)
-        {   MPI_Recv(buffer, MAX_ARRAY_SIZE, MPI_DOUBLE, size - 1,
-                     MPI_ANY_TAG, MPI_COMM_WORLD, &status);
-            for(uint i = 0; i < (uint) status.MPI_TAG; i++)
-            {   for(uint x = 0; x < numCellsX; x++)
-                {   for(uint z = 0; z < numCellsZ; z++)
-                    {   checkNeighborsCyc(cells[x][0][z],
-                                          &(buffer[i * SENT_PARTICLE_SIZE])); } } } }
-        if (rank == size - 1)
-        {   MPI_Recv(buffer, MAX_ARRAY_SIZE, MPI_DOUBLE, 0,
-                     MPI_ANY_TAG, MPI_COMM_WORLD, &status);
-            for(uint i = 0; i < (uint) status.MPI_TAG; i++)
-            {   for(uint x = 0; x < numCellsX; x++)
-                {   for(uint z = 0; z < numCellsZ; z++)
-                    {   checkNeighborsCyc(cells[x][numCellsY - 1][z],
-                                          &(buffer[i * SENT_PARTICLE_SIZE])); } } } }
-        
-        //  Exchange data on edges of x-plane.
-        uint src, dest;
-        
-        //    Send data right first.
-        src = !rank              ? rank - 1 : size - 1;
-        dest= (rank == size - 1) ? rank + 1 : 0;
-        
-        //      Take care of right-side neighbors.
-        /*getXSlice(buffer, bufferSize, 0);
-        MPI_Ibsend(buffer, bufferSize, MPI_DOUBLE, src,
-                   bufferSize / SENT_PARTICLE_SIZE, MPI_COMM_WORLD, &mpr1);
-        MPI_Recv(buffer, MAX_ARRAY_SIZE, MPI_DOUBLE, dest,
-                 MPI_ANY_TAG, MPI_COMM_WORLD, &status);
-        for(uint i = 0; i < (uint) status.MPI_TAG; i++)
-        {   for(uint y = 0; y < numCellsY; y++)
-            {   for(uint z = 0; z < numCellsZ; z++)
-                {   checkNeighborsCyc(cells[numCellsX - 1][y][z],
-                                      &(buffer[i * SENT_PARTICLE_SIZE])); } } }
-        //      Take care of left-side neighbors.
-        /*getXSlice(buffer, bufferSize, numCellsX - 1);
-        MPI_Ibsend(buffer, bufferSize, MPI_DOUBLE, src,
-                   bufferSize / SENT_PARTICLE_SIZE, MPI_COMM_WORLD, &mpr1);
-        MPI_Recv(buffer, MAX_ARRAY_SIZE, MPI_DOUBLE, dest,
-                 MPI_ANY_TAG, MPI_COMM_WORLD, &status);
-        for(uint i = 0; i < (uint) status.MPI_TAG; i++)
-        {   for(uint y = 0; y < numCellsY; y++)
-            {   for(uint z = 0; z < numCellsZ; z++)
-                {   checkNeighborsCyc(cells[0][y][z],
-                                      &(buffer[i * SENT_PARTICLE_SIZE])); } } }
-        
-        //    Send data left next.
-        src = (rank == size - 1) ? rank + 1 : 0;
-        dest= !rank              ? rank - 1 : size - 1;
-        
-        //      Take care of right-side neighbors.
-        getXSlice(buffer, bufferSize, 0);
-        MPI_Ibsend(buffer, bufferSize, MPI_DOUBLE, src,
-                   bufferSize / SENT_PARTICLE_SIZE, MPI_COMM_WORLD, &mpr1);
-        MPI_Recv(buffer, MAX_ARRAY_SIZE, MPI_DOUBLE, dest,
-                 MPI_ANY_TAG, MPI_COMM_WORLD, &status);
-        for(uint i = 0; i < (uint) status.MPI_TAG; i++)
-        {   for(uint y = 0; y < numCellsY; y++)
-            {   for(uint z = 0; z < numCellsZ; z++)
-                {   checkNeighborsCyc(cells[numCellsX - 1][y][z],
-                                      &(buffer[i * SENT_PARTICLE_SIZE])); } } }
-        //      Take care of left-side neighbors.
-        getXSlice(buffer, bufferSize, numCellsX - 1);
-        MPI_Ibsend(buffer, bufferSize, MPI_DOUBLE, src,
-                   bufferSize / SENT_PARTICLE_SIZE, MPI_COMM_WORLD, &mpr1);
-        MPI_Recv(buffer, MAX_ARRAY_SIZE, MPI_DOUBLE, dest,
-                 MPI_ANY_TAG, MPI_COMM_WORLD, &status);
-        for(uint i = 0; i < (uint) status.MPI_TAG; i++)
-        {   for(uint y = 0; y < numCellsY; y++)
-            {   for(uint z = 0; z < numCellsZ; z++)
-                {   checkNeighborsCyc(cells[0][y][z],
-                                      &(buffer[i * SENT_PARTICLE_SIZE])); } } }/***/ }
+    //  Exchange data on edges of x-plane.
+    uint src, dest;
+    
+    //    Send data right first.
+    src = !rank              ? rank - 1 : size - 1;
+    dest= (rank == size - 1) ? rank + 1 : 0;
+    
+    //      Take care of right-side neighbors.
+    /*getXSlice(buffer, bufferSize, 0);
+    MPI_Ibsend(buffer, bufferSize, MPI_DOUBLE, src,
+               bufferSize / SENT_PARTICLE_SIZE, MPI_COMM_WORLD, &mpr1);
+    MPI_Recv(buffer, MAX_ARRAY_SIZE, MPI_DOUBLE, dest,
+             MPI_ANY_TAG, MPI_COMM_WORLD, &status);
+    for(uint i = 0; i < (uint) status.MPI_TAG; i++)
+    {   for(uint y = 0; y < numCellsY; y++)
+        {   for(uint z = 0; z < numCellsZ; z++)
+            {   checkNeighborsCyc(cells[numCellsX - 1][y][z],
+                                  &(buffer[i * SENT_PARTICLE_SIZE])); } } }
+    //      Take care of left-side neighbors.
+    /*getXSlice(buffer, bufferSize, numCellsX - 1);
+    MPI_Ibsend(buffer, bufferSize, MPI_DOUBLE, src,
+               bufferSize / SENT_PARTICLE_SIZE, MPI_COMM_WORLD, &mpr1);
+    MPI_Recv(buffer, MAX_ARRAY_SIZE, MPI_DOUBLE, dest,
+             MPI_ANY_TAG, MPI_COMM_WORLD, &status);
+    for(uint i = 0; i < (uint) status.MPI_TAG; i++)
+    {   for(uint y = 0; y < numCellsY; y++)
+        {   for(uint z = 0; z < numCellsZ; z++)
+            {   checkNeighborsCyc(cells[0][y][z],
+                                  &(buffer[i * SENT_PARTICLE_SIZE])); } } }
+    
+    //    Send data left next.
+    src = (rank == size - 1) ? rank + 1 : 0;
+    dest= !rank              ? rank - 1 : size - 1;
+    
+    //      Take care of right-side neighbors.
+    getXSlice(buffer, bufferSize, 0);
+    MPI_Ibsend(buffer, bufferSize, MPI_DOUBLE, src,
+               bufferSize / SENT_PARTICLE_SIZE, MPI_COMM_WORLD, &mpr1);
+    MPI_Recv(buffer, MAX_ARRAY_SIZE, MPI_DOUBLE, dest,
+             MPI_ANY_TAG, MPI_COMM_WORLD, &status);
+    for(uint i = 0; i < (uint) status.MPI_TAG; i++)
+    {   for(uint y = 0; y < numCellsY; y++)
+        {   for(uint z = 0; z < numCellsZ; z++)
+            {   checkNeighborsCyc(cells[numCellsX - 1][y][z],
+                                  &(buffer[i * SENT_PARTICLE_SIZE])); } } }
+    //      Take care of left-side neighbors.
+    getXSlice(buffer, bufferSize, numCellsX - 1);
+    MPI_Ibsend(buffer, bufferSize, MPI_DOUBLE, src,
+               bufferSize / SENT_PARTICLE_SIZE, MPI_COMM_WORLD, &mpr1);
+    MPI_Recv(buffer, MAX_ARRAY_SIZE, MPI_DOUBLE, dest,
+             MPI_ANY_TAG, MPI_COMM_WORLD, &status);
+    for(uint i = 0; i < (uint) status.MPI_TAG; i++)
+    {   for(uint y = 0; y < numCellsY; y++)
+        {   for(uint z = 0; z < numCellsZ; z++)
+            {   checkNeighborsCyc(cells[0][y][z],
+                                  &(buffer[i * SENT_PARTICLE_SIZE])); } } }/***/
     
     MPI_Buffer_detach(mpi_buffer, &mpi_buffer_size); }
 
@@ -531,7 +520,8 @@ void findRemoteNeighbors()
  *  Map each particle into the calculation map so it can be indexed by ID.
  */
 inline void fillMap()
-{   for(uint x = 0; x < numCellsX; x++)
+{   pmap.clear();
+    for(uint x = 0; x < numCellsX; x++)
     {   for(uint y = 0; y < numCellsY; y++)
         {   for(uint z = 0; z < numCellsZ; z++)
             {   for(Cell::iterator iter = cells[x][y][z].begin(); iter != cells[x][y][z].end(); iter++)
@@ -586,9 +576,10 @@ bool loadNeighbors()
     
     catch (int errType)
     {   char err[64];
-        sprintf(err, "⚠ Unable to read elements of output file %s; calculating neighbors instead.", inDataFileName);
+        sprintf(err, "⚠ Output file %s incorrectly formatted (extra newline at end?);\n  calculating neighbors instead.", inDataFileName);
         warning(err);
         return false; }
+    
     catch (...)
     {   char err[64];
         sprintf(err, "⚠ Unable to load output file %s.", inDataFileName);
@@ -607,7 +598,7 @@ void outputNeighbors()
     outDataFile.open(outDataFileName, fstream::out);
     if (!outDataFile)
     {   char err[64];
-        sprintf(err, "⚠ Unable to load file %s", outDataFileName);
+        sprintf(err, "⚠ Unable to create file %s", outDataFileName);
         error(err); }
     
     try
@@ -621,7 +612,7 @@ void outputNeighbors()
     
     catch (...)
     {   char err[64];
-        sprintf(err, "⚠ Unable to write output file %s.", outDataFileName);
+        sprintf(err, "⚠ Unable to write to output file %s.", outDataFileName);
         error(err); } }
 
 /** void calculateNeighbors()
@@ -632,11 +623,13 @@ void calculateNeighbors()
 {   findMaxNN();            if (verbose && !rank) cout << "  Cell geometry identified as " 
                                                        << (maxNN == 12 ? "face-centered cubic." : (maxNN == 8 ? "body-centered cubic." : "simple cubic or orthorhombic."))
                                                        << endl;    cout.flush();
+    
     if (!loadNeighbors())
-    {   pmap.clear();
-        createCells();          if (verbose && !rank) cout << "  Cell partitioning complete." << endl;  cout.flush();
+    {   createCells();          if (verbose && !rank) cout << "  Cell partitioning complete." << endl;  cout.flush();
+        
         findLocalNeighbors();   if (verbose && !rank) cout << "  Local neighbors found." << endl;       cout.flush();
         findRemoteNeighbors();  if (verbose && !rank) cout << "  Remote neighbors found." << endl;      cout.flush();
+        
         fillMap();
         outputNeighbors(); } }
 

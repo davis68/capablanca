@@ -1,5 +1,5 @@
 /** readxyz.cpp
- *  30 Nov 2009--02 Jun 2010
+ *  30 Nov 2009--31 Aug 2010
  *  Bill Tuohy and Neal Davis
  */
 
@@ -45,29 +45,19 @@ class TempParticle
             z = _z;
             state = (coord_t) _state; } };
 
-int interval,
-    idCount;
-
 /*  getProc(coord_t y)
  *  
  *  Assign the node number for a particle based on its y coordinate.  Normalize
  *  to Y range and scale to number of nodes.  Check for exact equality to the
  *  upper limit so the integer isn't bigger than highest rank.
  */
-unsigned int getProc(coord_t y)
+inline unsigned int getProc(coord_t y)
 {   coord_t range   = maxY - minY,
             procFloat = ((y - minY) / range) * size;
     int     procNum   = (int) procFloat;
     if (procNum == size) procNum--;
     
     return procNum; }
-
-/*  int assignID()
- *  
- *  Generate a unique ID for a given particle based on the rank.
- */
-int assignID()
-{   return (rank * interval + idCount++); }
 
 /*  void setMinMax()
  *  
@@ -98,7 +88,6 @@ void readXYZ()
 {   coord_t x, y, z;
     state_t state;
     int     thisProc;    //  Rank to which a particle will be assigned.
-    interval = idCount = 0;
     
     vector<TempParticle*> tempParticles;
     double  localMinY = 1e8, localMaxY = -1e8;
@@ -112,8 +101,7 @@ void readXYZ()
     if (xyzFile == NULL)
     {   char err[64];
         sprintf(err, "⚠ Unable to open file %s", dataFileName);
-        error(err);
-        return; }
+        error(err); }
     
     try
     {   int cnt = fscanf(xyzFile, "%u", &initialTotalParticles);
@@ -127,27 +115,20 @@ void readXYZ()
             fileStartPtr= bytesPerNode * rank + curr_fptr,  //  Start of data for this proc.
             fileEndPtr  = fileStartPtr + bytesPerNode - 1;  //  End of data for this proc.
         
-        //  Align start/end ptrs to EOLs.
+        //  Align start ptr to EOL. FIXME:is this where the particle is dropped, rank 0 particle 1?
+        int c;
         fseek(xyzFile, fileStartPtr, SEEK_SET);
-        int c = fgetc(xyzFile);
-        while(c != '\n' && c != EOF)
-        {   c = fgetc(xyzFile); }
+        do { c = fgetc(xyzFile); } while(c != '\n' && c != EOF);
         fileStartPtr = ftell(xyzFile) - 1;
         
+        //  Align end ptr to EOL.
         fseek(xyzFile, fileEndPtr, SEEK_SET);
-        c = fgetc(xyzFile); //FIXME:  while((c = fgetc(xyzFile)) != '\n' && c != EOF) { }
-        while(c != '\n' && c != EOF)
-        {   c = fgetc(xyzFile); }
+        do { c = fgetc(xyzFile); } while(c != '\n' && c != EOF);
         fileEndPtr = ftell(xyzFile) - 1;
-        if (rank == size - 1)                       //  Force last proc to EOF.
+        if (rank == size - 1)                   //  Force last proc to EOF.
         {   fseek(xyzFile, -1, SEEK_END);
             fileEndPtr = ftell(xyzFile); }
-        fseek(xyzFile, fileStartPtr, SEEK_SET);    //  Seek to start ptr.
-        
-        //  Get interval as estimated number of particles plus one thousand.
-        int bytesInFile = fileEndPtr - fileStartPtr,
-            numParticlesInFile = bytesInFile / (34 * sizeof(char)); //***TODO validate
-        interval = numParticlesInFile / size + 1000;
+        fseek(xyzFile, fileStartPtr, SEEK_SET); //  Seek to start ptr.
         
         while(ftell(xyzFile) != fileEndPtr)
         {   cnt = fscanf(xyzFile, "%u %lf %lf %lf", &state, &x, &y, &z);
@@ -158,6 +139,7 @@ void readXYZ()
             
             tempParticles.push_back(new TempParticle(x, y, z, state)); }
         fclose(xyzFile); }
+    
     catch (...)
     {   char err[64];
         sprintf(err, "⚠ Unable to read data file %s.", dataFileName);
@@ -183,40 +165,38 @@ void readXYZ()
     //  receive buffer.
     //    Send and receive number of particles to be transferred.
     MPI_Request mpr1;
-    uint        sendSize, recvSize;
+    uint sendSize, recvSize;
     for (int dest = 0; dest < size; dest++)
-    {   if (dest != rank)
-        {   sendSize = sendBuckets[dest].size();
-            MPI_Isend(&sendSize, 1, MPI_INT, dest, 1, MPI_COMM_WORLD, &mpr1); } }
+    {   if (dest == rank) continue;
+        sendSize = sendBuckets[dest].size();
+        MPI_Isend(&sendSize, 1, MPI_INT, dest, 1, MPI_COMM_WORLD, &mpr1); }
     for (int src = 0; src < size; src++)
-    {   if (src != rank)
-        {   MPI_Recv(&recvSize, 1, MPI_INT, src, 1, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-            recvBuckets[src].resize(recvSize); } }
+    {   if (src == rank) continue;
+        MPI_Recv(&recvSize, 1, MPI_INT, src, 1, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+        recvBuckets[src].resize(recvSize); }
     
     //    Receive particle data and handle it.
     for (int dest = 0; dest < size; dest++)
-    {   if (dest != rank)
-        {   MPI_Isend(&(sendBuckets[dest][0]), sendBuckets[dest].size(),
-                      MPI_DOUBLE, dest, 2, MPI_COMM_WORLD, &mpr1); } }
+    {   if (dest == rank) continue;
+        MPI_Isend(&(sendBuckets[dest][0]), sendBuckets[dest].size(), MPI_DOUBLE, dest, 2, MPI_COMM_WORLD, &mpr1); }
     for (int src = 0; src < size; src++)
-    {   if (src != rank)
-        {   MPI_Recv(&(recvBuckets[src][0]), recvBuckets[src].size(),
-                     MPI_DOUBLE, src, 2, MPI_COMM_WORLD, MPI_STATUS_IGNORE); } }
+    {   if (src == rank) continue;
+        MPI_Recv(&(recvBuckets[src][0]), recvBuckets[src].size(), MPI_DOUBLE, src, 2, MPI_COMM_WORLD, MPI_STATUS_IGNORE); }
     
     for (int src = 0; src < size; src++)
-    {   if (src != rank)
-        {   for (uint i = 0; i < recvBuckets[src].size(); i += TEMP_PARTICLE_SIZE)
-            {   Particle p1 ;
-                p1.x    =           recvBuckets[src][i + 0];
-                p1.y    =           recvBuckets[src][i + 1];
-                p1.z    =           recvBuckets[src][i + 2];
-                p1.state= (state_t) recvBuckets[src][i + 3];
-                particles.push_back(p1);
-                setMinMax(&p1); } } }
+    {   if (src == rank) continue;
+        for (uint i = 0; i < recvBuckets[src].size(); i += TEMP_PARTICLE_SIZE)
+        {   Particle p1;
+            p1.x    =           recvBuckets[src][i + 0];
+            p1.y    =           recvBuckets[src][i + 1];
+            p1.z    =           recvBuckets[src][i + 2];
+            p1.state= (state_t) recvBuckets[src][i + 3];
+            particles.push_back(p1);
+            setMinMax(&p1); } }
     
     //  Copy kept data back in from sendBucket.
     for (uint i = 0; i < kept * TEMP_PARTICLE_SIZE; i += TEMP_PARTICLE_SIZE)
-    {   Particle p1 ;
+    {   Particle p1;
         p1.x    =           sendBuckets[rank][i + 0];
         p1.y    =           sendBuckets[rank][i + 1];
         p1.z    =           sendBuckets[rank][i + 2];
@@ -228,18 +208,18 @@ void readXYZ()
     //  original number of particles in the XYZ file.
     uint localParticleCount = particles.size(),
          totalParticleCount;
-    MPI_Allreduce(&localParticleCount, &totalParticleCount, 1,
-                  MPI_INT, MPI_SUM, MPI_COMM_WORLD);
+    MPI_Allreduce(&localParticleCount, &totalParticleCount, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
     if (verbose && !rank && (initialTotalParticles != totalParticleCount))
         cout << "⚠ " << initialTotalParticles << " particles expected; "
              << totalParticleCount << " found.\n";
-    //assert(totalParticleCount == initialTotalParticles); ***
+    //assert(totalParticleCount == initialTotalParticles); ***FIXME
     
     //  Assign particle IDs.
-    int *particleCount; particleCount = new int[size];
-    MPI_Allgather(&localParticleCount, 1, MPI_INT,
-                  particleCount, 1, MPI_INT, MPI_COMM_WORLD);
+    int *particleCount;
+    particleCount = new int[size];
+    MPI_Allgather(&localParticleCount, 1, MPI_INT, particleCount, 1, MPI_INT, MPI_COMM_WORLD);
     int basis = accumulate(particleCount, particleCount + rank, 0);
     for (uint i = 0; i < particles.size(); i++)
-    {   particles[i].id = i + basis; } }
+    {   particles[i].id = i + basis; }
+    delete [] particleCount; }
 

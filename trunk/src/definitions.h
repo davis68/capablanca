@@ -16,7 +16,6 @@ typedef double          coord_t;        //  the type used for particle coordinat
 typedef uint            state_t;        //  the type used for a particle's current state
 
 typedef vector<double>  Vector;
-typedef vector<Vector>  Matrix;
 
 //  Input defaults.
 #define PROGRAM_VERSION "0.8.0"         //  version of this code
@@ -28,10 +27,7 @@ typedef vector<Vector>  Matrix;
 #define MAX_ARRAY_SIZE  2000000         //  the maximum size of an array to be communicated between two CPUs FIXME
 
 //  Nearest-neighbor detection.
-#define NEIGHBOR_SQUARE_CUTOFF  1.010   //  determined by precision in XYZ file
-
-//  Processing.
-#define SURFACE_CUTOFF  4.0             //  particles within that distance from the top are considered to be in the surface FIXME
+#define NEIGHBOR_SQUARE_CUTOFF  1.100   //  determined by precision in XYZ file
 
 //  System parameters.
 const double    k_B = 1.0,              //  Boltzmann constant in reduced units
