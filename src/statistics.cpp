@@ -107,7 +107,7 @@ void outputToFile(uint t, uint totalAtoms)
     {   char err[64];
         sprintf(err, "⚠ Unable to load file %s", outDataFileName);
         error(err); }
-    uint numNN; //FIXME
+    uint numNN;
     try
     {   //  Output non-dissolved particle positions to files which will later be collected.
         if (!rank) outDataFile << totalAtoms << endl;
