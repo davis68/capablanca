@@ -1,6 +1,9 @@
 /** readxyz.cpp
- *  30 Nov 2009--31 Aug 2010
+ *  30 Nov 2009--09 Sep 2010
  *  Bill Tuohy and Neal Davis
+ *  
+ *  For a full description of the XYZ file format, see
+ *  http://www.ks.uiuc.edu/Research/vmd/plugins/molfile/xyzplugin.html
  */
 
 #include <algorithm>

@@ -142,7 +142,11 @@ inline void calcProbs()
         {   probA[i][j] = rxnA[i].prefactor
                         * exp(-rxnA[i].alpha * j * rxnA[i].E_s      / (k_B * T))
                         * exp(-rxnA[i].E_r                          / (k_B * T))
-                        * exp(-rxnA[i].alpha * rxnA[i].z * ec * phi / (k_B * T)); } }
+                        * exp(-rxnA[i].alpha * rxnA[i].z * ec * phi / (k_B * T));
+            /*TODO:output these data to file:cout << i << "," << j << ": " << rxnA[i].prefactor << " "
+                 << exp(-rxnA[i].alpha * j * rxnA[i].E_s      / (k_B * T)) << " "
+                 << exp(-rxnA[i].E_r                          / (k_B * T)) << " "
+                 << exp(-rxnA[i].alpha * rxnA[i].z * ec * phi / (k_B * T)) << endl;/***/ } }
     
     /// Deposition:
     probB.resize(numStates, vector<double>(maxNN, 0.0));

@@ -10,13 +10,13 @@ Vital
 ✔ combine process_helpers.h and process.cpp
 ✔ fix half-layers in fcc/bcc in petroff
 ✔ figure out visualization (now using VMD)
-  set "make all" to "make optimized" by default
+✔ set "make all" to "make optimized" by default
 ∼ check uint/int comparisons in for statements (by max value type) in all files
 ✔ validate surface expansion functions
 ✔ add deposition rule set, differentiating prefactors and energies for deposition
 ✔ auto-detect lattice type
 ✔ fix initial surface-finding routine to something that's more general
-  fix fcc/bcc nn count
+✔ fix fcc/bcc nn count
   turn off initial surfaceB in ruylopez/petroff
   
   create orthorhombic settings for ruylopez & petroff
@@ -27,7 +27,6 @@ Vital
 Small-scale
 ✔ incorporate better UPRNG/validation of ergodicity of rng-->convert to use Boost uniform_01
 ✔ find better optimal nn cell size (fails if cells too small for any particles)
-✗ set edges to 12 automatically
 ✔ standardize file names and includes
   re-examine message passing in readXYZ() (& dropped particle)
 ∼ re-examine message passing in neighbors.cpp (but maintain bsend?)
@@ -41,6 +40,7 @@ Small-scale
   test suite batch file
 ✔ output nn-list for previously processed xyz files
 ✔ add forced recalculation of nearest neighbor lists flag
+✔ put command line on first comment in xyz file
   
 
 Medium
@@ -54,7 +54,7 @@ Medium
   streamline error handling
   more general rules (esp for diff species or multiple kinetic regimes)
   review original ppproj2009 for correct attributions of code
-✔ make cyclicality a possibility
+∼ make cyclicality a possibility
 ✗ separate warning and error symbols
 ✗ write sstream-accepting particle output procedure in particle.h to simplify xyz output
   

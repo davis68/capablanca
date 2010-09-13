@@ -18,6 +18,7 @@ using namespace std;
 //  External global variables from global.cpp
 extern char    *progName,
                *progVers,
+               *progCL,
                *confFileName,
                *ruleFileName,
                *dataFileName;
@@ -34,8 +35,7 @@ extern Reaction *rxnA,
 extern int      outputInterval,
                 tmax,
                 ranseed;
-extern bool     cyclical,
-                deposition,
+extern bool     deposition,
                 ranseedspec,
                 recalcNN;
 
@@ -48,7 +48,6 @@ void outputHelp()
          << "that the terminal support Unicode UTF-8 or higher." << endl << endl
          << "Usage:  " << progName << " [OPTION]..." << endl << endl
          << "  -c CONFIG.CFG     specify configuration file;" << endl
-         << "  -C                make problem cyclical in x- and y-directions;" << endl
          << "  -d                suppress deposition;" << endl
          << "  -h                display this help message;" << endl
          << "  -E φ              specify potential φ;" << endl
@@ -90,6 +89,7 @@ void loadRules()
         for (uint i = 0; i < numRules; i++)
         {   //  Read and ignore comment explaining reaction.
             ruleFile.getline(tempStr, 256);
+            ruleFile.getline(tempStr, 256);
             
             //  Input the appropriate parameters for this reaction.
             ruleFile >> state;
@@ -102,7 +102,6 @@ void loadRules()
             rxnB[rxnA[state].newState].E_r       = rxnA[state].E_r;
             rxnB[rxnA[state].newState].z         = rxnA[state].z;
             rxnB[rxnA[state].newState].newState  = state; }
-        
         ruleFile.close(); }
     catch (...)
     {   char err[64];
@@ -153,7 +152,6 @@ void parseInput(const int argc, char** argv)
     ruleFileName= new char[32];
     dataFileName= new char[32];
     verbose     = false;
-    cyclical    = false;
     deposition  = true;
     ranseedspec = false;
     recalcNN    = false;
@@ -164,8 +162,13 @@ void parseInput(const int argc, char** argv)
     
     progName = new char[12];
     progVers = new char[8];
+    progCL   = new char[256];
     strcpy(progName, "capablanca");
     strcpy(progVers, PROGRAM_VERSION);
+    strcpy(progCL, argv[0]);
+    for (int i = 1; i < argc; i++)
+    {   strcat(progCL, " ");
+        strcat(progCL, argv[i]); }
     
     //  Set variables which will be affected by the configuration file to zero
     //  as a flag that they should be overridden if they are still zero.
@@ -184,10 +187,6 @@ void parseInput(const int argc, char** argv)
                     val = strtok(argv[i++], " ,");
                     confFileName = val;
                     confFlag = true;
-                    break;
-                    
-                case 'C':   //  Make the problem cyclical in x- and y-directions.
-                    cyclical = true;
                     break;
                     
                 case 'd':   //  Suppress deposition.
@@ -256,7 +255,7 @@ void parseInput(const int argc, char** argv)
                     
                 default:    //  Unknown parameter encountered.
                     char err[64];
-                    sprintf(err, "⚠ Unknown input parameter %d", val[0]);
+                    sprintf(err, "⚠ Unknown input parameter %s", val);
                     if (!rank) outputHelp();
                     cout.flush();
                     error(err);
