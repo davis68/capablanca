@@ -37,8 +37,6 @@ extern uint numStates,
             dissolnStates,
             maxNN;
 
-extern bool cyclical;
-
 extern vector<Particle>    particles;
 extern map<id_t, Particle> pmap;
 
@@ -145,32 +143,6 @@ inline double distSqrd(Particle& p1, Particle& p2)
     z = p2.z - p1.z;
     return (x * x + y * y + z * z); }
 
-/** double distSqrdCyc()
- *  
- *  Return square of Euclidean distance between two particles, wrapping in the
- *  x- and y-directions.
- */
-inline double distSqrdCyc(Particle& p1, Particle& p2)
-{   if (p1.id == p2.id) return 1e8; //  Prevent a particle from becoming its own neighbor.
-    double  x, y, z,
-            dist, distX, distY, distXY,
-            xAugRange, yAugRange, zAugRange;
-    
-    xAugRange = xRange + NEIGHBOR_SQUARE_CUTOFF;
-    yAugRange = yRange + NEIGHBOR_SQUARE_CUTOFF;
-    zAugRange = zRange + NEIGHBOR_SQUARE_CUTOFF;
-    
-    x = p2.x - p1.x;
-    y = p2.y - p1.y;
-    z = p2.z - p1.z;
-    
-    dist = x * x + y * y + z * z;
-    distX = (xAugRange - x) * (xAugRange - x) + y * y + z * z;
-    distY = x * x + (yAugRange - y) * (yAugRange - y) + z * z;
-    distXY= (xAugRange - x) * (xAugRange - x) + (yAugRange - y) * (yAugRange - y) + z * z;
-    
-    return min(dist, min(distX, min(distY, distXY))); }
-
 /** uint getNumCells()
  *  
  *  Find the appropriate number of cells in a given dimension.
@@ -227,25 +199,12 @@ void createCells()
         cells[k][l][m].push_back(p);
         particles.pop_back(); } }
 
-/*  bool alreadyNeighbors()
- *  
- *  Indicate whether two particles are already neighbors to each other.
- */
-inline bool alreadyNeighbors(Particle& p1, Particle& p2)
-{   return false;
-    for (vector<id_t>::iterator iter = p1.neighbors.begin(); iter != p1.neighbors.end(); iter++)
-    {   if (find(p2.neighbors.begin(), p2.neighbors.end(), *iter) != p2.neighbors.end()) return true; }
-    
-    return false; }
-
 /*  void makeNeighbors(Particle&, Particle&)
  *  
  *  Make two particles have each other's states & ids in their neighbor list.
  */
 inline void makeNeighbors(Particle& p1, Particle& p2)
-{   if (alreadyNeighbors(p1, p2))   return;
-    
-    if(p1.neighbors.size() > maxNN)
+{   if(p1.neighbors.size() > maxNN)
     {   char err[64];
         sprintf(err, "⚠ %d neighbors detected for particle %d at (%f, %f, %f).", p1.neighbors.size(), p1.id, p1.x, p1.y, p1.z);
         warning(err); }
@@ -263,9 +222,7 @@ inline void makeNeighbors(Particle& p1, Particle& p2)
  *  Make a particle have another's state & id in its neighbor list.
  */
 inline void makeNeighborsAffectOnlyLeft(Particle& p1, Particle& p2)
-{   if (alreadyNeighbors(p1, p2))   return;
-    
-    if(p1.neighbors.size() > maxNN)
+{   if(p1.neighbors.size() > maxNN)
     {   char err[64];
         sprintf(err, "⚠ %d neighbors detected for particle %d at (%f, %f, %f).", p1.neighbors.size(), p1.id, p1.x, p1.y, p1.z);
         warning(err); }
@@ -292,16 +249,6 @@ inline void findInterCellNeighbors(Cell& cell1, Cell& cell2)
         {   if(distSqrd(*iter1, *iter2) <= NEIGHBOR_SQUARE_CUTOFF)
             {   makeNeighbors(*iter1, *iter2); } } } }
 
-/** void findInterCellNeighborsCyc()
- *  
- *  Test each particle within two cells to see if they are neighbors.
- */
-inline void findInterCellNeighborsCyc(Cell& cell1, Cell& cell2)
-{   for(Cell::iterator iter1 = cell1.begin(); iter1 != cell1.end(); iter1++)
-    {   for(Cell::iterator iter2 = cell2.begin(); iter2 != cell2.end(); iter2++)
-        {   if(distSqrdCyc(*iter1, *iter2) <= NEIGHBOR_SQUARE_CUTOFF)
-            {   makeNeighbors(*iter1, *iter2); } } } }
-
 /** void findLocalNeighbors()
  *  
  *  Test all particles on this processor to see if they are neighbors.
@@ -326,31 +273,7 @@ void findLocalNeighbors()
                 //  Find diagonal neighbors.
                 if(i > 0 && j > 0) findInterCellNeighbors(cells[i][j][k], cells[i - 1][j - 1][k]);
                 if(i > 0 && k > 0) findInterCellNeighbors(cells[i][j][k], cells[i - 1][j][k - 1]);
-                if(j > 0 && k > 0) findInterCellNeighbors(cells[i][j][k], cells[i][j - 1][k - 1]); } } }
-    
-    if (!cyclical)  return;
-    
-    //  Look for new cyclical nearest neighbors in the x-direction.  The
-    //  y-direction cells neighboring those of this processor are remote.
-    if (numCellsX > 2)
-    {   for(uint j = 0; j < numCellsY; j++)
-        {   for(uint k = 0; k < numCellsZ; k++)
-            {   findInterCellNeighborsCyc(cells[0][j][k], cells[numCellsX - 1][j][k]); } } } }
-
-/** void getXSlice()
- *  
- *  Pack a slice of a cell into a buffer for messaging.
- */
-inline void getXSlice(coord_t* buffer, int& bufferSize, const uint i)
-{   bufferSize = 0;
-    for (uint j = 0; j < numCellsY; j++)
-    {   for (uint k = 0; k < numCellsZ; k++)
-        {   for (uint l = 0; l < cells[i][j][k].size(); l++)
-            {   buffer[bufferSize++] = (coord_t) cells[i][j][k][l].id;
-                buffer[bufferSize++] =           cells[i][j][k][l].x;
-                buffer[bufferSize++] =           cells[i][j][k][l].y;
-                buffer[bufferSize++] =           cells[i][j][k][l].z;
-                buffer[bufferSize++] = (coord_t) cells[i][j][k][l].state; } } } }
+                if(j > 0 && k > 0) findInterCellNeighbors(cells[i][j][k], cells[i][j - 1][k - 1]); } } } }
 
 /** void getYSlice()
  *  
@@ -376,17 +299,6 @@ inline void checkNeighbors(Cell& cell1, coord_t* data)
     
     for(Cell::iterator iter1 = cell1.begin(); iter1 != cell1.end(); iter1++)
     {   if(distSqrd(*iter1, other) <= NEIGHBOR_SQUARE_CUTOFF)
-        {   makeNeighborsAffectOnlyLeft(*iter1, other); } } }
-
-/** void checkNeighborsCyc()
- *  
- *  Find out if the sent data describes a particle neighboring any in this cell.
- */
-inline void checkNeighborsCyc(Cell& cell1, coord_t* data)
-{   Particle other(data[0], data[1], data[2], data[3], data[4]);
-    
-    for(Cell::iterator iter1 = cell1.begin(); iter1 != cell1.end(); iter1++)
-    {   if(distSqrdCyc(*iter1, other) <= NEIGHBOR_SQUARE_CUTOFF)
         {   makeNeighborsAffectOnlyLeft(*iter1, other); } } }
 
 /** void findRemoteNeighbors()
@@ -424,94 +336,6 @@ void findRemoteNeighbors()
         {   for(uint i = 0; i < numCellsX; i++)
             {   for(uint k = 0; k < numCellsZ; k++)
                 {   checkNeighbors(cells[i][numCellsY - 1][k], &(buffer[l * SENT_PARTICLE_SIZE])); } } } }
-    
-    if (!cyclical)
-    {   MPI_Buffer_detach(mpi_buffer, &mpi_buffer_size);
-        return; }
-    
-    //  Exchange data on edges of y-plane.
-    /*if (!rank)
-    {   getYSlice(buffer, bufferSize, 0);
-        MPI_Ibsend(buffer, bufferSize, MPI_DOUBLE, size - 1,
-                  bufferSize / SENT_PARTICLE_SIZE, MPI_COMM_WORLD, &mpr1); }
-    if (rank == size - 1)
-    {   getYSlice(buffer, bufferSize, numCellsY - 1);
-        MPI_Ibsend(buffer, bufferSize, MPI_DOUBLE, 0,
-                  bufferSize / SENT_PARTICLE_SIZE, MPI_COMM_WORLD, &mpr1); }
-    
-    if (!rank)
-    {   MPI_Recv(buffer, MAX_ARRAY_SIZE, MPI_DOUBLE, size - 1,
-                 MPI_ANY_TAG, MPI_COMM_WORLD, &status);
-        for(uint i = 0; i < (uint) status.MPI_TAG; i++)
-        {   for(uint x = 0; x < numCellsX; x++)
-            {   for(uint z = 0; z < numCellsZ; z++)
-                {   checkNeighborsCyc(cells[x][0][z],
-                                      &(buffer[i * SENT_PARTICLE_SIZE])); } } } }
-    if (rank == size - 1)
-    {   MPI_Recv(buffer, MAX_ARRAY_SIZE, MPI_DOUBLE, 0,
-                 MPI_ANY_TAG, MPI_COMM_WORLD, &status);
-        for(uint i = 0; i < (uint) status.MPI_TAG; i++)
-        {   for(uint x = 0; x < numCellsX; x++)
-            {   for(uint z = 0; z < numCellsZ; z++)
-                {   checkNeighborsCyc(cells[x][numCellsY - 1][z],
-                                      &(buffer[i * SENT_PARTICLE_SIZE])); } } } }
-    
-    //  Exchange data on edges of x-plane.
-    uint src, dest;
-    
-    //    Send data right first.
-    src = !rank              ? rank - 1 : size - 1;
-    dest= (rank == size - 1) ? rank + 1 : 0;
-    
-    //      Take care of right-side neighbors.
-    /*getXSlice(buffer, bufferSize, 0);
-    MPI_Ibsend(buffer, bufferSize, MPI_DOUBLE, src,
-               bufferSize / SENT_PARTICLE_SIZE, MPI_COMM_WORLD, &mpr1);
-    MPI_Recv(buffer, MAX_ARRAY_SIZE, MPI_DOUBLE, dest,
-             MPI_ANY_TAG, MPI_COMM_WORLD, &status);
-    for(uint i = 0; i < (uint) status.MPI_TAG; i++)
-    {   for(uint y = 0; y < numCellsY; y++)
-        {   for(uint z = 0; z < numCellsZ; z++)
-            {   checkNeighborsCyc(cells[numCellsX - 1][y][z],
-                                  &(buffer[i * SENT_PARTICLE_SIZE])); } } }
-    //      Take care of left-side neighbors.
-    /*getXSlice(buffer, bufferSize, numCellsX - 1);
-    MPI_Ibsend(buffer, bufferSize, MPI_DOUBLE, src,
-               bufferSize / SENT_PARTICLE_SIZE, MPI_COMM_WORLD, &mpr1);
-    MPI_Recv(buffer, MAX_ARRAY_SIZE, MPI_DOUBLE, dest,
-             MPI_ANY_TAG, MPI_COMM_WORLD, &status);
-    for(uint i = 0; i < (uint) status.MPI_TAG; i++)
-    {   for(uint y = 0; y < numCellsY; y++)
-        {   for(uint z = 0; z < numCellsZ; z++)
-            {   checkNeighborsCyc(cells[0][y][z],
-                                  &(buffer[i * SENT_PARTICLE_SIZE])); } } }
-    
-    //    Send data left next.
-    src = (rank == size - 1) ? rank + 1 : 0;
-    dest= !rank              ? rank - 1 : size - 1;
-    
-    //      Take care of right-side neighbors.
-    getXSlice(buffer, bufferSize, 0);
-    MPI_Ibsend(buffer, bufferSize, MPI_DOUBLE, src,
-               bufferSize / SENT_PARTICLE_SIZE, MPI_COMM_WORLD, &mpr1);
-    MPI_Recv(buffer, MAX_ARRAY_SIZE, MPI_DOUBLE, dest,
-             MPI_ANY_TAG, MPI_COMM_WORLD, &status);
-    for(uint i = 0; i < (uint) status.MPI_TAG; i++)
-    {   for(uint y = 0; y < numCellsY; y++)
-        {   for(uint z = 0; z < numCellsZ; z++)
-            {   checkNeighborsCyc(cells[numCellsX - 1][y][z],
-                                  &(buffer[i * SENT_PARTICLE_SIZE])); } } }
-    //      Take care of left-side neighbors.
-    getXSlice(buffer, bufferSize, numCellsX - 1);
-    MPI_Ibsend(buffer, bufferSize, MPI_DOUBLE, src,
-               bufferSize / SENT_PARTICLE_SIZE, MPI_COMM_WORLD, &mpr1);
-    MPI_Recv(buffer, MAX_ARRAY_SIZE, MPI_DOUBLE, dest,
-             MPI_ANY_TAG, MPI_COMM_WORLD, &status);
-    for(uint i = 0; i < (uint) status.MPI_TAG; i++)
-    {   for(uint y = 0; y < numCellsY; y++)
-        {   for(uint z = 0; z < numCellsZ; z++)
-            {   checkNeighborsCyc(cells[0][y][z],
-                                  &(buffer[i * SENT_PARTICLE_SIZE])); } } }/***/
     
     MPI_Buffer_detach(mpi_buffer, &mpi_buffer_size); }
 
@@ -554,6 +378,10 @@ bool loadNeighbors()
         sprintf(err, "⚠ Unable to load file %s", inDataFileName);
         error(err); }
     
+    xRange = myMaxX - myMinX;
+    yRange = myMaxY - myMinY;
+    zRange = myMaxZ - myMinZ;
+    
     try
     {   ParticleMap::iterator mapIter;
         char line[256];
@@ -570,7 +398,10 @@ bool loadNeighbors()
             if (mapIter == pmap.end()) throw 1;
             
             while ((word = strtok(NULL, " \t")) != NULL)
-            {   mapIter->second.neighbors.push_back(atoi(word)); } }
+            {   mapIter->second.neighbors.push_back(atoi(word));
+            
+            checkBorder(mapIter->second, myMinY);
+            checkBorder(mapIter->second, myMaxY); } }
         
         inDataFile.close(); }
     

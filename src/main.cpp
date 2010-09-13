@@ -40,6 +40,7 @@ extern Reaction    *rxnA,
 
 extern char *progName,
             *progVers,
+            *progCL,
             *confFileName,
             *ruleFileName,
             *dataFileName;

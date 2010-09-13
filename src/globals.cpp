@@ -15,6 +15,7 @@ int     rank,           //  Init in main.cpp main()
 //  Input file names and initializers.
 char   *progName,       //  Init in input.cpp parseInput()
        *progVers,       //  Init in input.cpp parseInput()
+       *progCL,         //  Init in input.cpp parseInput()
        *confFileName,   //  Init in input.cpp parseInput()
        *ruleFileName,   //  Init in input.cpp parseInput()
        *dataFileName;   //  Init in input.cpp parseInput()
@@ -33,8 +34,7 @@ Reaction   *rxnA,       //  Init in input.cpp loadRules() | Freed in main.cpp ma
 uint    outputInterval, //  Init in input.cpp parseInput() or loadConfig()
         tmax,           //  Init in input.cpp parseInput() or loadConfig()
         ranseed;        //  Init in process.cpp process()
-bool    cyclical,       //  Init in input.cpp parseInput()
-        deposition,     //  Init in input.cpp parseInput()
+bool    deposition,     //  Init in input.cpp parseInput()
         ranseedspec,    //  Init in input.cpp parseInput()
         recalcNN;       //  Init in input.cpp parseInput()
 

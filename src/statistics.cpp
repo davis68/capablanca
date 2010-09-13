@@ -1,5 +1,5 @@
 /** statistics.cpp
- *  29 Oct 2009--15 Jul 2010
+ *  29 Oct 2009--09 Sep 2010
  *  Neal Davis
  *  
  */
@@ -37,6 +37,8 @@ extern uint outputInterval,
 
 extern int  rank,
             size;
+
+extern char *progCL;
 
 extern ParticleMap      pmap;
 
@@ -98,8 +100,9 @@ void outputSurface(list<Particle*> particles, uint t)
  *  
  *  Output all data to a file by time step and process.
  */
-void outputToFile(uint t, uint totalAtoms)
-{   fstream outDataFile;
+void outputToFile(uint t)
+{   /// Output particle positions and states to file.
+    fstream outDataFile;
     char    outDataFileName[36];
     sprintf(outDataFileName, "t=%d-P=%d.xyz_temp", t, rank);
     outDataFile.open(outDataFileName, fstream::out);
@@ -107,17 +110,14 @@ void outputToFile(uint t, uint totalAtoms)
     {   char err[64];
         sprintf(err, "⚠ Unable to load file %s", outDataFileName);
         error(err); }
-    uint numNN;
+    
     try
     {   //  Output non-dissolved particle positions to files which will later be collected.
-        if (!rank) outDataFile << totalAtoms << endl;
+        if (!rank) outDataFile << newTotalAtoms << endl;
         for (ParticleMap::iterator iter = pmap.begin(); iter != pmap.end(); iter++)
         {   if (iter->second.state >= dissolnStates) continue;
-            numNN = accumulate(iter->second.countN.begin(), iter->second.countN.begin() + dissolnStates, 0);
-            outDataFile << numNN << "\t" << iter->second.x << "\t"
-                        << iter->second.y     << "\t" << iter->second.z << endl; }/***/
-            /*outDataFile << iter->second.state << "\t" << iter->second.x << "\t"
-                        << iter->second.y     << "\t" << iter->second.z << endl; }/***/
+            outDataFile << iter->second.state << "\t" << iter->second.x << "\t"
+                        << iter->second.y     << "\t" << iter->second.z << endl; }
         
         outDataFile.close(); }
     
@@ -126,6 +126,7 @@ void outputToFile(uint t, uint totalAtoms)
         sprintf(err, "⚠ Unable to write output file %s.", outDataFileName);
         error(err); }
     
+    /// Output system statistics (state counts, etc.) to file.
     static fstream  statFile;
     static char     statFileName[36];
     if (!rank)
@@ -181,6 +182,7 @@ void collateStatistics(uint t)
     oldTotalAtoms   = newTotalAtoms;
     newTotalAtoms   = 0;
     newDissolnAtoms = 0;
+    
     for (uint i = 0; i < dissolnStates; i++)
     {   newTotalAtoms += newParticleCount[i]; }
     for (uint i = 0; i < numStates; i++)
@@ -191,7 +193,7 @@ void collateStatistics(uint t)
     {   rates[i] = (double) newParticleCount[i] - (double) oldParticleCount[i]; }
     
     //  Write the system configuration and statistics to disk.
-    outputToFile(t, newTotalAtoms); }
+    outputToFile(t); }
 
 /*  collectStatFiles()
  *  
@@ -226,6 +228,7 @@ void collectStatFiles()
                 //  Copy total number of particles in this time step.
                 if (!i)
                 {   inFile >> totalParticles;
+                    allFile << "# " << progCL << endl;
                     allFile << totalParticles << endl; }
                 
                 while (!inFile.eof())
