@@ -17,7 +17,8 @@ Vital
 ✔ auto-detect lattice type
 ✔ fix initial surface-finding routine to something that's more general
 ✔ fix fcc/bcc nn count
-  turn off initial surfaceB in ruylopez/petroff
+✔ turn off initial surfaceB in ruylopez/petroff
+  fix evolution of entire fcc system rather than a superficial layer
   
   create orthorhombic settings for ruylopez & petroff
   create vacancy defect generator
@@ -38,7 +39,7 @@ Small-scale
   fix up makefile
 ✔ allow CLI specification of random seed
   test suite batch file
-✔ output nn-list for previously processed xyz files
+✗ output nn-list for previously processed xyz files---this was rejected because not enough info is local (what are states of all nn?)
 ✔ add forced recalculation of nearest neighbor lists flag
 ✔ put command line on first comment in xyz file
   

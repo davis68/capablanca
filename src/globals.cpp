@@ -35,8 +35,7 @@ uint    outputInterval, //  Init in input.cpp parseInput() or loadConfig()
         tmax,           //  Init in input.cpp parseInput() or loadConfig()
         ranseed;        //  Init in process.cpp process()
 bool    deposition,     //  Init in input.cpp parseInput()
-        ranseedspec,    //  Init in input.cpp parseInput()
-        recalcNN;       //  Init in input.cpp parseInput()
+        ranseedspec;    //  Init in input.cpp parseInput()
 
 //  Calculation variables.
 vector<vector<double> > probA;      //  Init in process.cpp calcProbs()
