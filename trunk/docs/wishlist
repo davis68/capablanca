@@ -18,9 +18,9 @@ Vital
 ✔ fix initial surface-finding routine to something that's more general
 ✔ fix fcc/bcc nn count
 ✔ turn off initial surfaceB in ruylopez/petroff
-  fix evolution of entire fcc system rather than a superficial layer
+✔ fix evolution of entire fcc system rather than a superficial layer
   
-  create orthorhombic settings for ruylopez & petroff
+  create orthorhombic settings for ruylopez & petroff (necessary?  only a nn model)
   create vacancy defect generator
   
   

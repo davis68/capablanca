@@ -30,7 +30,8 @@ typedef vector<Particle> Cell;
 
 //  External global variables from global.cpp
 extern char    *dataFileName;
-extern bool verbose;
+extern bool verbose,
+            recalcNN;
 
 extern uint numStates,
             dissolnStates,
@@ -353,6 +354,108 @@ inline void fillMap()
                     pmap.insert(pair<id_t, Particle>(p.id, p)); }
                 cells[x][y][z].clear(); } } } }
 
+/** bool loadNeighbors()
+ *  
+ *  Load the previously-generated list of nearest neighbors.  Note that if there
+ *  is a problem with the existence of one of the files but not all, undefined
+ *  behavior may result.  Also, the nearest-neighbor files generated are
+ *  specific to the number of processors running the program, and must be
+ *  recalculated, especially if you previously ran with more processors than
+ *  you are now using.
+ */
+bool loadNeighbors()
+{   if (recalcNN) return false;
+    
+    fstream inDataFile;
+    char    inDataFileName[36];
+    sprintf(inDataFileName, "%s.P=%d.nn", dataFileName, rank);
+    if (!fileExists(inDataFileName))
+    {   char err[64];
+        if (!rank) sprintf(err, "⚠ Unable to find neighbor files for %s; calculating instead.", dataFileName);
+        warning(err);
+        return false; }
+    
+    inDataFile.open(inDataFileName, fstream::in);
+    if (!inDataFile)
+    {   char err[64];
+        sprintf(err, "⚠ Unable to load file %s", inDataFileName);
+        error(err); }
+    
+    try
+    {   ParticleMap::iterator mapIter;
+        char line[256];
+        char *word;
+        
+        //  Map each particle into the calculation map so it can be indexed by ID.
+        for (vector<Particle>::iterator iter = particles.begin(); iter != particles.end(); iter++)
+        {   pmap.insert(pair<id_t, Particle>((*iter).id, *iter)); }
+        
+        while (inDataFile.getline(line, 256, '\n'))
+        {   //  Input the particle id and the ids of its neighbors.
+            word = strtok(line, " \t");
+            mapIter = pmap.find(atoi(word));
+            if (mapIter == pmap.end()) throw 1;
+            
+            while ((word = strtok(NULL, " \t")) != NULL)
+            {   mapIter->second.neighbors.push_back(atoi(word)); }
+            
+            inDataFile.getline(line, 256, '\n');
+            word = strtok(line, " \t");
+            uint i = 0;
+            do
+            {   if (i > numStates) throw 2;
+                mapIter->second.countN[i++] = atoi(word); }
+            while ((word = strtok(NULL, " \t")) != NULL); }
+        
+        inDataFile.close(); }
+    
+    catch (int errType)
+    {   char err[64];
+        if (errType == 1) sprintf(err, "⚠ Output file %s incorrectly formatted (extra newline at end?);\n  calculating neighbors instead.", inDataFileName);
+        else if (errType == 1) sprintf(err, "⚠ Output file %s incorrectly formatted (too many particle states);\n  calculating neighbors instead.", inDataFileName);
+        else if (errType == 1) sprintf(err, "⚠ Output file %s incorrectly formatted (extra newline at end?);\n  calculating neighbors instead.", inDataFileName);
+        warning(err);
+        return false; }
+    
+    catch (...)
+    {   char err[64];
+        sprintf(err, "⚠ Unable to load output file %s.", inDataFileName);
+        error(err); }
+    
+    return true; }
+
+/** void outputNeighbors()
+ *  
+ *  Output the calculated list of nearest neighbors.
+ */
+void outputNeighbors()
+{   fstream outDataFile;
+    char    outDataFileName[36];
+    sprintf(outDataFileName, "%s.P=%d.nn", dataFileName, rank);
+    outDataFile.open(outDataFileName, fstream::out);
+    if (!outDataFile)
+    {   char err[64];
+        sprintf(err, "⚠ Unable to create file %s", outDataFileName);
+        error(err); }
+    
+    try
+    {   for (ParticleMap::iterator iter = pmap.begin(); iter != pmap.end(); iter++)
+        {   //  Output the particle id and the ids of its neighbors.
+            outDataFile << iter->second.id << "\t";
+            for (vector<id_t>::iterator iter1 = iter->second.neighbors.begin(); iter1 != iter->second.neighbors.end(); iter1++)
+            {   outDataFile << *iter1 << "\t"; }
+            outDataFile << endl;
+            
+            //  Output the states of the nearest neighbors.
+            for (vector<uint>::iterator iter2 = iter->second.countN.begin(); iter2 != iter->second.countN.end(); iter2++)
+            {   outDataFile << *iter2 << "\t"; } }
+        outDataFile.close(); }
+    
+    catch (...)
+    {   char err[64];
+        sprintf(err, "⚠ Unable to write to output file %s.", outDataFileName);
+        error(err); } }
+
 /** void calculateNeighbors()
  *  
  *  Calculate the number of nearest neighbors of each particle.
@@ -362,10 +465,12 @@ void calculateNeighbors()
                                                        << (maxNN == 12 ? "face-centered cubic." : (maxNN == 8 ? "body-centered cubic." : "simple cubic or orthorhombic."))
                                                        << endl;    cout.flush();
     
-    createCells();          if (verbose && !rank) cout << "  Cell partitioning complete." << endl;  cout.flush();
-    
-    findLocalNeighbors();   if (verbose && !rank) cout << "  Local neighbors found." << endl;       cout.flush();
-    findRemoteNeighbors();  if (verbose && !rank) cout << "  Remote neighbors found." << endl;      cout.flush();
-    
-    fillMap(); }
+    if (!loadNeighbors())
+    {   createCells();          if (verbose && !rank) cout << "  Cell partitioning complete." << endl;  cout.flush();
+        
+        findLocalNeighbors();   if (verbose && !rank) cout << "  Local neighbors found." << endl;       cout.flush();
+        findRemoteNeighbors();  if (verbose && !rank) cout << "  Remote neighbors found." << endl;      cout.flush();
+        
+        fillMap();
+        outputNeighbors(); } }
 
