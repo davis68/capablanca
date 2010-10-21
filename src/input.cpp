@@ -36,7 +36,8 @@ extern int      outputInterval,
                 tmax,
                 ranseed;
 extern bool     deposition,
-                ranseedspec;
+                ranseedspec,
+                recalcNN;
 
 extern int      rank;
 
@@ -51,6 +52,7 @@ void outputHelp()
          << "  -h                display this help message;" << endl
          << "  -E φ              specify potential φ;" << endl
          << "  -i Τ              specify T steps between output files;" << endl
+         << "  -n                force recalculation of nearest neighbor files;" << endl
          << "  -p DATAFILE.XYZ   specify particle position file;" << endl
          << "  -R s              specify random seed s;" << endl
          << "  -r RULE_SET.RS    specify rule set file;" << endl
@@ -152,6 +154,7 @@ void parseInput(const int argc, char** argv)
     verbose     = false;
     deposition  = true;
     ranseedspec = false;
+    recalcNN    = false;
     
     bool    confFlag = false,
             ruleFlag = false,
@@ -205,6 +208,10 @@ void parseInput(const int argc, char** argv)
                 case 'i':   //  Output interval specified.
                     val = strtok(argv[i++], " ,.-");
                     outputInterval = atoi(val);
+                    break;
+                    
+                case 'n':   //  Force recalculation of nearest neighbor list.
+                    recalcNN = true;
                     break;
                     
                 case 'p':   //  Particle position file specified.

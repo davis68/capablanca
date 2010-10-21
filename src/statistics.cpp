@@ -1,5 +1,5 @@
 /** statistics.cpp
- *  29 Oct 2009--09 Sep 2010
+ *  29 Oct 2009--21 Oct 2010
  *  Neal Davis
  *  
  */
@@ -52,13 +52,13 @@ extern Vector   rates;
 extern uint     initialTotalParticles;
 
 //  Global variables
-static uint oldTotalAtoms,
-            newTotalAtoms,
-            newDissolnAtoms;
+static uint totalAtoms,
+            dissolnAtoms;
 
 /*  bool fileExists()
  *  
- *  Returns whether or not a file exists.  From http://www.techbytes.ca/techbyte103.html
+ *  Returns whether or not a file exists.
+ *  From http://www.techbytes.ca/techbyte103.html
  */
 bool fileExists(char* fileName)
 {   //  Attempt to get the file attributes.
@@ -113,7 +113,7 @@ void outputToFile(uint t)
     
     try
     {   //  Output non-dissolved particle positions to files which will later be collected.
-        if (!rank) outDataFile << newTotalAtoms << endl;
+        if (!rank) outDataFile << totalAtoms << endl;
         for (ParticleMap::iterator iter = pmap.begin(); iter != pmap.end(); iter++)
         {   if (iter->second.state >= dissolnStates) continue;
             outDataFile << iter->second.state << "\t" << iter->second.x << "\t"
@@ -151,10 +151,10 @@ void outputToFile(uint t)
         try
         {   if (!t) statFile << "random seed," << ranseed << endl;
             
-            statFile << t << ",";
+            statFile << t << ",rates,";
             for (Vector::iterator iter = rates.begin(); iter != rates.end(); iter++)
             {   statFile << *iter << ","; }
-            statFile << surfaceA.size() << "," << surfaceB.size() << endl;
+            statFile << "surfaces," << surfaceA.size() << "," << surfaceB.size() << endl;
             
             statFile.close(); }
         
@@ -179,14 +179,13 @@ void collateStatistics(uint t)
     MPI_Reduce(myParticleCount, newParticleCount, numStates, MPI_UNSIGNED, MPI_SUM, 0, MPI_COMM_WORLD);
     
     //  Get the total number of atoms in the system.
-    oldTotalAtoms   = newTotalAtoms;
-    newTotalAtoms   = 0;
-    newDissolnAtoms = 0;
+    totalAtoms   = 0;
+    dissolnAtoms = 0;
     
     for (uint i = 0; i < dissolnStates; i++)
-    {   newTotalAtoms += newParticleCount[i]; }
+    {   totalAtoms += newParticleCount[i]; }
     for (uint i = 0; i < numStates; i++)
-    {   newDissolnAtoms += newParticleCount[i]; }
+    {   dissolnAtoms += newParticleCount[i]; }
     
     //  Calculate rates if data exist.
     for (uint i = 0; i < numStates; i++)
@@ -197,32 +196,33 @@ void collateStatistics(uint t)
 
 /*  collectStatFiles()
  *  
- *  Load all files for each time step and put them together into one.
+ *  Load all files for each time step and combine them together into one file
+ *  for each time step.
  */
 void collectStatFiles()
-{   fstream allFile;
-    char    allFileName[36];
-    sprintf(allFileName, "N=%d.xyz", initialTotalParticles);
-    allFile.open(allFileName, ofstream::out);
-    if (!allFile)
-    {   char err[64];
-        sprintf(err, "Unable to create file %s", allFileName);
-        error(err); }
-    
-    try
+{   try
     {   uint    totalParticles = 0;
         state_t state;
         coord_t x, y, z;
-        fstream inFile;
-        char    inFileName[36];
+        fstream allFile, inFile;
+        char    allFileName[36], inFileName[36];
+        
         for (uint t = 0; t < tmax; t += outputInterval)
         {   for (uint i = 0; i < (uint) size; i++)
-            {   //  Open each file, read its contents into allfile, and close it.
+            {   //  Open each input file for the time step.
                 sprintf(inFileName, "t=%d-P=%d.xyz_temp", t, i);
                 inFile.open(inFileName, ifstream::in);
                 if (!inFile)
                 {   char err[64];
                     sprintf(err, "Unable to load file %s", inFileName);
+                    error(err); }
+                
+                //  Open output file for the time step.
+                sprintf(allFileName, "N=%d-t=%d.xyz", initialTotalParticles, t);
+                allFile.open(allFileName, ofstream::out);
+                if (!allFile)
+                {   char err[64];
+                    sprintf(err, "Unable to create file %s", allFileName);
                     error(err); }
                 
                 //  Copy total number of particles in this time step.
@@ -231,17 +231,18 @@ void collectStatFiles()
                     allFile << "# " << progCL << endl;
                     allFile << totalParticles << endl; }
                 
+                //  Read the contents into allFile.
                 while (!inFile.eof())
                 {   inFile >> state >> x >> y >> z;
                     allFile << state << "\t" << x << "\t" << y << "\t" << z << endl; }
                 
+                //  Clean up.
                 inFile.close();
-                remove(inFileName); } }
-        
-        allFile.close(); }
+                allFile.close();
+                remove(inFileName); } } }
     
     catch (...)
     {   char err[64];
-        sprintf(err, "⚠ Unable to collate position data to file %s.", allFileName);
+        sprintf(err, "⚠ Unable to collate position data to file.");
         error(err); } }
 
