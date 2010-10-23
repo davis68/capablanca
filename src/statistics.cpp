@@ -208,21 +208,21 @@ void collectStatFiles()
         char    allFileName[36], inFileName[36];
         
         for (uint t = 0; t < tmax; t += outputInterval)
-        {   for (uint i = 0; i < (uint) size; i++)
+        {   //  Open output file for the time step.
+            sprintf(allFileName, "N=%d-t=%d.xyz", initialTotalParticles, t);
+            allFile.open(allFileName, ofstream::out);
+            if (!allFile)
+            {   char err[64];
+                sprintf(err, "Unable to create file %s", allFileName);
+                error(err); }
+            
+            for (uint i = 0; i < (uint) size; i++)
             {   //  Open each input file for the time step.
                 sprintf(inFileName, "t=%d-P=%d.xyz_temp", t, i);
                 inFile.open(inFileName, ifstream::in);
                 if (!inFile)
                 {   char err[64];
                     sprintf(err, "Unable to load file %s", inFileName);
-                    error(err); }
-                
-                //  Open output file for the time step.
-                sprintf(allFileName, "N=%d-t=%d.xyz", initialTotalParticles, t);
-                allFile.open(allFileName, ofstream::out);
-                if (!allFile)
-                {   char err[64];
-                    sprintf(err, "Unable to create file %s", allFileName);
                     error(err); }
                 
                 //  Copy total number of particles in this time step.
@@ -238,11 +238,11 @@ void collectStatFiles()
                 
                 //  Clean up.
                 inFile.close();
-                allFile.close();
-                remove(inFileName); } } }
+                remove(inFileName); }
+            allFile.close(); } }
     
     catch (...)
     {   char err[64];
         sprintf(err, "⚠ Unable to collate position data to file.");
-        error(err); } }
+        warning(err); } }
 
