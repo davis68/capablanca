@@ -89,7 +89,7 @@ void outputSurface(list<Particle*> particles, uint t)
         {   outDataFile << (*iter)->state << "\t" << (*iter)->x << "\t"
         //{   int numNN = 0;
         //    numNN = accumulate((*iter)->countN.begin(), (*iter)->countN.begin()+dissolnStates,0);
-            outDataFile << numNN << "\t" << (*iter)->x << "\t"
+        //    outDataFile << numNN << "\t" << (*iter)->x << "\t"
                         << (*iter)->y     << "\t" << (*iter)->z << endl; }
         
         outDataFile.close(); }
