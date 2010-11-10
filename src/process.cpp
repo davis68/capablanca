@@ -20,7 +20,7 @@
 #include "error.h"
 #include "particle.h"
 #include "process.h"
-#include "statistics.h" //  FIXME debug
+#include "statistics.h"
 
 using namespace std;
 
@@ -96,7 +96,7 @@ void process()
     for (uint t = 0; t <= tmax; t++)
     {   //  Periodically output calculation status and system statistics.
         if (!(t % outputInterval)) collateStatistics(t);
-        if (!(t % outputInterval)) outputSurface(surfaceA, t); //FIXME
+        //if (!(t % outputInterval)) outputSurface(surfaceA, t);
         
         //  Apply rules to system particle-by-particle.
         for (list<Particle*>::iterator iter = surfaceA.begin(); iter != surfaceA.end(); iter++)

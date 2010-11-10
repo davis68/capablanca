@@ -87,6 +87,9 @@ void outputSurface(list<Particle*> particles, uint t)
         outDataFile << particles.size() << endl;
         for (list<Particle*>::iterator iter = particles.begin(); iter != particles.end(); iter++)
         {   outDataFile << (*iter)->state << "\t" << (*iter)->x << "\t"
+        //{   int numNN = 0;
+        //    numNN = accumulate((*iter)->countN.begin(), (*iter)->countN.begin()+dissolnStates,0);
+            outDataFile << numNN << "\t" << (*iter)->x << "\t"
                         << (*iter)->y     << "\t" << (*iter)->z << endl; }
         
         outDataFile.close(); }
@@ -207,7 +210,7 @@ void collectStatFiles()
         fstream allFile, inFile;
         char    allFileName[36], inFileName[36];
         
-        for (uint t = 0; t < tmax; t += outputInterval)
+        for (uint t = 0; t <= tmax; t += outputInterval)
         {   //  Open output file for the time step.
             sprintf(allFileName, "N=%d-t=%d.xyz", initialTotalParticles, t);
             allFile.open(allFileName, ofstream::out);

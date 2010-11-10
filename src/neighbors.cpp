@@ -56,7 +56,7 @@ vector<vector<vector<Cell> > > cells;
  *  Find the expected number of maximum nearest neighbors based on the geometry.
  *  The algorithm looks first for four mutual neighbors, indicating FCC.  If
  *  that is not found, then three mutual neighbors indicates BCC.  Otherwise,
- *  SC/orthorhombic is assumed.
+ *  SC is assumed.
  */
 void findMaxNN()
 {   maxNN = 0;
@@ -122,7 +122,7 @@ void findMaxNN()
             if (!maxNN)
             {   if (univThreeNN)  maxNN = 8;      //  BCC
                 else              maxNN = 6; } }  //  SC
-    //TODO:  Identify if SC or orthorhombic
+    
     MPI_Bcast(&maxNN, 1, MPI_UNSIGNED, 0, MPI_COMM_WORLD); }
 
 /** void checkBorder()
@@ -412,8 +412,7 @@ bool loadNeighbors()
     catch (int errType)
     {   char err[64];
         if (errType == 1) sprintf(err, "⚠ Output file %s incorrectly formatted (extra newline at end?);\n  calculating neighbors instead.", inDataFileName);
-        else if (errType == 1) sprintf(err, "⚠ Output file %s incorrectly formatted (too many particle states);\n  calculating neighbors instead.", inDataFileName);
-        else if (errType == 1) sprintf(err, "⚠ Output file %s incorrectly formatted (extra newline at end?);\n  calculating neighbors instead.", inDataFileName);
+        else if (errType == 2) sprintf(err, "⚠ Output file %s incorrectly formatted (too many particle states);\n  calculating neighbors instead.", inDataFileName);
         warning(err);
         return false; }
     
@@ -462,7 +461,7 @@ void outputNeighbors()
  */
 void calculateNeighbors()
 {   findMaxNN();            if (verbose && !rank) cout << "  Cell geometry identified as " 
-                                                       << (maxNN == 12 ? "face-centered cubic." : (maxNN == 8 ? "body-centered cubic." : "simple cubic or orthorhombic."))
+                                                       << (maxNN == 12 ? "face-centered cubic." : (maxNN == 8 ? "body-centered cubic." : "simple cubic."))
                                                        << endl;    cout.flush();
     
     if (!loadNeighbors())
