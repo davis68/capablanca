@@ -20,7 +20,7 @@ Vital
 ✔ turn off initial surfaceB in ruylopez/petroff
 ✔ fix evolution of entire fcc system rather than a superficial layer
   
-  create orthorhombic settings for ruylopez & petroff (necessary?  only a nn model)
+✗ create orthorhombic settings for ruylopez & petroff (necessary?  only a nn model)
   create vacancy defect generator
   
   
@@ -54,7 +54,7 @@ Medium
 ✗ convert completely to STL
   streamline error handling
   more general rules (esp for diff species or multiple kinetic regimes)
-  review original ppproj2009 for correct attributions of code
+✔ review original ppproj2009 for correct attributions of code
 ∼ make cyclicality a possibility
 ✗ separate warning and error symbols
 ✗ write sstream-accepting particle output procedure in particle.h to simplify xyz output
@@ -70,7 +70,4 @@ Wishlisted
   contact Bill Tuohy re termination of 1.0.0 version
   
 Test the readXYZ() dropped particle thing to see if it's in the reading (try the 27 particles in test.xyz).
-What statistics do we wish to collect?
-
-rjq ./capablanca -d -V -i 100 -t 1000 -T 0.10 -p 10.xyz 
 
