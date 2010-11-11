@@ -231,8 +231,8 @@ void collectStatFiles()
                 //  Copy total number of particles in this time step.
                 if (!i)
                 {   inFile >> totalParticles;
-                    //allFile << "# " << progCL << endl;
-                    allFile << totalParticles << endl; }
+                    allFile << totalParticles << endl;
+                    allFile << "# " << progCL << endl; }
                 
                 //  Read the contents into allFile.
                 while (!inFile.eof())
