@@ -1,5 +1,5 @@
 /** neighbors.cpp
- *  29 Oct 2009--14 Jul 2010
+ *  29 Oct 2009--11 Nov 2010
  *  Neal Davis, Minas Charalambides, and Simon Jenkins
  *  
  *  This file uses MPI buffered send mode, which precludes any other portion
@@ -29,7 +29,7 @@ using namespace std;
 typedef vector<Particle> Cell;
 
 //  External global variables from global.cpp
-extern char    *dataFileName;
+extern char *dataFileName;
 extern bool verbose,
             recalcNN;
 

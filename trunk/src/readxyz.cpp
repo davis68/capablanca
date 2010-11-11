@@ -1,5 +1,5 @@
 /** readxyz.cpp
- *  30 Nov 2009--09 Sep 2010
+ *  30 Nov 2009--11 Nov 2010
  *  Bill Tuohy and Neal Davis
  *  
  *  For a full description of the XYZ file format, see
@@ -7,7 +7,6 @@
  */
 
 #include <algorithm>
-#include <cassert> //FIXME
 #include <iostream>
 #include <mpi.h>
 #include <numeric>
@@ -48,7 +47,7 @@ class TempParticle
             z = _z;
             state = (coord_t) _state; } };
 
-/*  getProc(coord_t y)
+/** int getProc()
  *  
  *  Assign the node number for a particle based on its y coordinate.  Normalize
  *  to Y range and scale to number of nodes.  Check for exact equality to the
@@ -62,7 +61,7 @@ inline unsigned int getProc(coord_t y)
     
     return procNum; }
 
-/*  void setMinMax()
+/** void setMinMax()
  *  
  *  Find the minima and maxima in each dimension.
  */
@@ -74,7 +73,7 @@ inline void setMinMax (Particle *p1)
     if (p1->z < myMinZ) myMinZ = p1->z;
     if (p1->z > myMaxZ) myMaxZ = p1->z; }
 
-/*  void readXYZ()
+/** void readXYZ()
  *  
  *  Reads XYZ file, builds particle struct for each particle, and separates the
  *  particles into buckets for each processor to own.
@@ -118,7 +117,7 @@ void readXYZ()
             fileStartPtr= bytesPerNode * rank + curr_fptr,  //  Start of data for this proc.
             fileEndPtr  = fileStartPtr + bytesPerNode - 1;  //  End of data for this proc.
         
-        //  Align start ptr to EOL. FIXME:is this where the particle is dropped, rank 0 particle 1?
+        //  Align start ptr to EOL.
         int c;
         fseek(xyzFile, fileStartPtr, SEEK_SET);
         do { c = fgetc(xyzFile); } while(c != '\n' && c != EOF);
@@ -212,15 +211,15 @@ void readXYZ()
     uint localParticleCount = particles.size(),
          totalParticleCount;
     MPI_Allreduce(&localParticleCount, &totalParticleCount, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
-    if (verbose && !rank && (initialTotalParticles != totalParticleCount))
-        cout << "⚠ " << initialTotalParticles << " particles expected; "
-             << totalParticleCount << " found.\n";
-    //assert(totalParticleCount == initialTotalParticles); ***FIXME
+    if (!rank && (initialTotalParticles != totalParticleCount))
+    {   cout << "⚠ " << initialTotalParticles << " particles expected; "
+             << totalParticleCount << " found.\n"; }
     
     //  Assign particle IDs.
     int *particleCount;
     particleCount = new int[size];
     MPI_Allgather(&localParticleCount, 1, MPI_INT, particleCount, 1, MPI_INT, MPI_COMM_WORLD);
+    
     int basis = accumulate(particleCount, particleCount + rank, 0);
     for (uint i = 0; i < particles.size(); i++)
     {   particles[i].id = i + basis; }
