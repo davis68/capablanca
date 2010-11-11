@@ -21,7 +21,7 @@ Vital
 ✔ fix evolution of entire fcc system rather than a superficial layer
   
 ✗ create orthorhombic settings for ruylopez & petroff (necessary?  only a nn model)
-  create vacancy defect generator
+✔ create vacancy defect generator
   
   
 
@@ -29,19 +29,19 @@ Small-scale
 ✔ incorporate better UPRNG/validation of ergodicity of rng-->convert to use Boost uniform_01
 ✔ find better optimal nn cell size (fails if cells too small for any particles)
 ✔ standardize file names and includes
-  re-examine message passing in readXYZ() (& dropped particle)
+∼ re-examine message passing in readXYZ() (& dropped particle)
 ∼ re-examine message passing in neighbors.cpp (but maintain bsend?)
 ✗ convert to use iterators, not indices of vectors
 ✔ add error-catching to input.cpp readxyz.cpp statistics.cpp
 ✔ update file formatting to make it uniform
 ✔ free allocated memory throughout
 ✔ check for previous addition of neighbors and simplify neighbor structure (for now)
-  fix up makefile
+✔ fix up makefile
 ✔ allow CLI specification of random seed
-  test suite batch file
+✗ test suite batch file
 ✗ output nn-list for previously processed xyz files---this was rejected because not enough info is local (what are states of all nn?)
 ✔ add forced recalculation of nearest neighbor lists flag
-✔ put command line on first comment in xyz file
+✔ put command line on first comment in xyz file-->second
   
 
 Medium
@@ -52,7 +52,7 @@ Medium
 ✔ dynamic findMaxNN()
   state dump/load for large simulations
 ✗ convert completely to STL
-  streamline error handling
+∼ streamline error handling
   more general rules (esp for diff species or multiple kinetic regimes)
 ✔ review original ppproj2009 for correct attributions of code
 ∼ make cyclicality a possibility
@@ -62,12 +62,6 @@ Medium
 
 Wishlisted
   allow MD/MC particle motion w/ periodic recalculation of nn
-  generalized proc topology rather than slices?
-  
-  load particles on one proc?
-  matrix problem?
-  
-  contact Bill Tuohy re termination of 1.0.0 version
   
 Test the readXYZ() dropped particle thing to see if it's in the reading (try the 27 particles in test.xyz).
 
