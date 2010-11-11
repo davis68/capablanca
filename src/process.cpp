@@ -183,7 +183,7 @@ void resetVariables()
     boundaryChangesBuffer.clear();
     boundaryStatesBuffer.clear(); }
 
-/** transitionParticle(Particle* ptr)
+/** transitionParticle()
  *  
  *  Calculate the probability that the particle indicated by ptr has its state
  *  altered by the currently applicable rule and update the state of that

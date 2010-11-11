@@ -55,7 +55,7 @@ extern uint     initialTotalParticles;
 static uint totalAtoms,
             dissolnAtoms;
 
-/*  bool fileExists()
+/** fileExists()
  *  
  *  Returns whether or not a file exists.
  *  From http://www.techbytes.ca/techbyte103.html
@@ -197,7 +197,7 @@ void collateStatistics(uint t)
     //  Write the system configuration and statistics to disk.
     outputToFile(t); }
 
-/*  collectStatFiles()
+/** collectStatFiles()
  *  
  *  Load all files for each time step and combine them together into one file
  *  for each time step.
@@ -225,18 +225,19 @@ void collectStatFiles()
                 inFile.open(inFileName, ifstream::in);
                 if (!inFile)
                 {   char err[64];
-                    sprintf(err, "Unable to load file %s", inFileName);
+                    sprintf(err, "Unable to load temporary position data file %s", inFileName);
                     error(err); }
                 
                 //  Copy total number of particles in this time step.
                 if (!i)
                 {   inFile >> totalParticles;
-                    allFile << "# " << progCL << endl;
+                    //allFile << "# " << progCL << endl;
                     allFile << totalParticles << endl; }
                 
                 //  Read the contents into allFile.
                 while (!inFile.eof())
                 {   inFile >> state >> x >> y >> z;
+                    if (inFile.eof()) break;
                     allFile << state << "\t" << x << "\t" << y << "\t" << z << endl; }
                 
                 //  Clean up.
