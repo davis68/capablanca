@@ -42,10 +42,10 @@ extern uint outputInterval,
 extern bool deposition,
             ranseedspec;
 
+extern coord_t myMinZ;
+
 extern int  rank,
             size;
-
-extern coord_t myMaxZ;
 
 extern ParticleMap              pmap;
 extern vector<vector<double> >  probA;
@@ -58,6 +58,7 @@ extern uint    *oldParticleCount;
 extern uint    *newParticleCount;
 extern uint    *myParticleCount;
 extern Vector   rates;
+extern bool     surfaceOutput;
 
 //  Global variables
 static id_t     sendChangesBuffer[MAX_ARRAY_SIZE];
@@ -95,8 +96,9 @@ void process()
     
     for (uint t = 0; t <= tmax; t++)
     {   //  Periodically output calculation status and system statistics.
-        if (!(t % outputInterval)) collateStatistics(t);
-        //if (!(t % outputInterval)) outputSurface(surfaceA, t);
+        if (!(t % outputInterval))
+        {   collateStatistics(t);
+            if (surfaceOutput) outputSurface(surfaceA, t); }
         
         //  Apply rules to system particle-by-particle.
         for (list<Particle*>::iterator iter = surfaceA.begin(); iter != surfaceA.end(); iter++)
@@ -118,7 +120,8 @@ void process()
             cout.flush(); } }
     
     //  Output the data from the last time step.
-    collateStatistics(tmax);
+    collateStatistics(tmax + 1);
+    if (surfaceOutput) outputSurface(surfaceA, tmax + 1);
     
     delete[] oldParticleCount;
     delete[] newParticleCount;
@@ -161,14 +164,15 @@ inline void calcProbs()
  */
 void findSurface()
 {   //  Determine global maximum z-coordinate.
-    coord_t  maxZ;
-    MPI_Allreduce(&myMaxZ, &maxZ, 1, MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD);
+    coord_t  minZ;
+    MPI_Allreduce(&myMinZ, &minZ, 1, MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD);
     
     //  Seed surfaceA with an initial surface particle and expand surfaces from it.
     ParticleMap::iterator mapIter;
     uint numNN;
     for (mapIter = pmap.begin(); mapIter != pmap.end(); mapIter++)
-    {   numNN = accumulate(mapIter->second.countN.begin(), mapIter->second.countN.begin() + dissolnStates, 0);
+    {   if (abs(minZ - mapIter->second.z) > NEIGHBOR_SQUARE_CUTOFF) continue;
+        numNN = accumulate(mapIter->second.countN.begin(), mapIter->second.countN.begin() + dissolnStates, 0);
         if (numNN < maxNN && !hasDissolved(&(mapIter->second))) break; }
     expandSurfaces(mapIter->second); }
 
