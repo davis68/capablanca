@@ -59,4 +59,4 @@ uint   *newParticleCount;       //  Init in process.cpp process() | Freed in pro
 uint   *myParticleCount;        //  Init in process.cpp process() | Freed in process.cpp process()
 Vector  rates;                  //  Init in process.cpp process()
 uint    initialTotalParticles;  //  Init in readxyz.cpp readXYZ()
-
+bool    surfaceOutput;          //  Init in input.cpp parseInput()

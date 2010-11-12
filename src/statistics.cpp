@@ -86,10 +86,9 @@ void outputSurface(list<Particle*> particles, uint t)
     {   //  Output particle positions to outDataFile.
         outDataFile << particles.size() << endl;
         for (list<Particle*>::iterator iter = particles.begin(); iter != particles.end(); iter++)
-        {   outDataFile << (*iter)->state << "\t" << (*iter)->x << "\t"
-        //{   int numNN = 0;
-        //    numNN = accumulate((*iter)->countN.begin(), (*iter)->countN.begin()+dissolnStates,0);
-        //    outDataFile << numNN << "\t" << (*iter)->x << "\t"
+        {   int numNN = 0;
+            numNN = accumulate((*iter)->countN.begin(), (*iter)->countN.begin()+dissolnStates,0);
+            outDataFile << numNN << "\t" << (*iter)->x << "\t"
                         << (*iter)->y     << "\t" << (*iter)->z << endl; }
         
         outDataFile.close(); }

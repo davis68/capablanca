@@ -41,6 +41,8 @@ extern bool     deposition,
 
 extern int      rank;
 
+extern bool     surfaceOutput;
+
 void outputHelp()
 {   cout << "capablanca is a state transition machine for simulating electrochemical" << endl
          << "reactions, especially as a function of nearest neighbors.  It is" << endl
@@ -56,6 +58,7 @@ void outputHelp()
          << "  -p DATAFILE.XYZ   specify particle position file;" << endl
          << "  -R s              specify random seed s;" << endl
          << "  -r RULE_SET.RS    specify rule set file;" << endl
+         << "  -s                output surface at each time step as well;" << endl
          << "  -T ϑ              specify temperature ϑ;" << endl
          << "  -t τ              specify τ time steps to run;" << endl
          << "  -V                use verbose output;" << endl
@@ -155,6 +158,7 @@ void parseInput(const int argc, char** argv)
     deposition  = true;
     ranseedspec = false;
     recalcNN    = false;
+    surfaceOutput=false;
     
     bool    confFlag = false,
             ruleFlag = false,
@@ -230,6 +234,10 @@ void parseInput(const int argc, char** argv)
                     val = strtok(argv[i++], " ,");
                     ruleFileName = val;
                     ruleFlag = true;
+                    break;
+                    
+                case 's':   //  Output the surface.
+                    surfaceOutput = true;
                     break;
                     
                 case 'T':   //  Temperature specified.
