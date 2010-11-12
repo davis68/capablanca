@@ -98,7 +98,7 @@ void process()
     {   //  Periodically output calculation status and system statistics.
         if (!(t % outputInterval))
         {   collateStatistics(t);
-            if (surfaceOutput) outputSurface(surfaceA, t); }
+            if (surfaceOutput) outputSurface(surfaceB, t); }
         
         //  Apply rules to system particle-by-particle.
         for (list<Particle*>::iterator iter = surfaceA.begin(); iter != surfaceA.end(); iter++)
@@ -121,7 +121,7 @@ void process()
     
     //  Output the data from the last time step.
     collateStatistics(tmax + 1);
-    if (surfaceOutput) outputSurface(surfaceA, tmax + 1);
+    if (surfaceOutput) outputSurface(surfaceB, tmax + 1);
     
     delete[] oldParticleCount;
     delete[] newParticleCount;
