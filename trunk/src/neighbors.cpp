@@ -411,8 +411,8 @@ bool loadNeighbors()
     
     catch (int errType)
     {   char err[64];
-        if (errType == 1) sprintf(err, "⚠ Output file %s incorrectly formatted (extra newline at end?);\n  calculating neighbors instead.", inDataFileName);
-        else if (errType == 2) sprintf(err, "⚠ Output file %s incorrectly formatted (too many particle states);\n  calculating neighbors instead.", inDataFileName);
+        if (errType == 1 && !rank) sprintf(err, "⚠ Output file %s incorrectly formatted (extra newline at end?);\n  calculating neighbors instead.", inDataFileName);
+        else if (errType == 2 && !rank) sprintf(err, "⚠ Output file %s incorrectly formatted (too many particle states);\n  calculating neighbors instead.", inDataFileName);
         warning(err);
         return false; }
     
@@ -447,7 +447,8 @@ void outputNeighbors()
             
             //  Output the states of the nearest neighbors.
             for (vector<uint>::iterator iter2 = iter->second.countN.begin(); iter2 != iter->second.countN.end(); iter2++)
-            {   outDataFile << *iter2 << "\t"; } }
+            {   outDataFile << *iter2 << "\t"; }
+            outDataFile << endl; }
         outDataFile.close(); }
     
     catch (...)
