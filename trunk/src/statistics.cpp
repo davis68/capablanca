@@ -209,7 +209,7 @@ void collectStatFiles()
         fstream allFile, inFile;
         char    allFileName[36], inFileName[36];
         
-        for (uint t = 0; t <= tmax; t += outputInterval)
+        for (uint t = 0; t <= tmax + 1; t += outputInterval)
         {   //  Open output file for the time step.
             sprintf(allFileName, "N=%d-t=%d.xyz", initialTotalParticles, t);
             allFile.open(allFileName, ofstream::out);
@@ -242,6 +242,9 @@ void collectStatFiles()
                 //  Clean up.
                 inFile.close();
                 remove(inFileName); }
+            
+            if (t == tmax) t = tmax + 1 - outputInterval;
+            
             allFile.close(); } }
     
     catch (...)
