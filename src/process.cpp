@@ -411,6 +411,7 @@ void packSurface()
     {   numNN = accumulate((*iter)->countN.begin(), (*iter)->countN.begin() + dissolnStates, 0);
         if ( hasDissolved(*iter) || numNN == maxNN)
         {   (*iter)->onSurface = notOnSurface;
+            expandSurfaces(*(*iter));
             iter = surfaceA.erase(iter);
             iter--; } } //  I've tested this separately, and it doesn't cause trouble at list::begin().
     
@@ -419,6 +420,7 @@ void packSurface()
     {   numNN = accumulate((*iter)->countN.begin(), (*iter)->countN.begin() + dissolnStates, 0);
         if (!hasDissolved(*iter) || !numNN)
         {   (*iter)->onSurface = notOnSurface;
+            expandSurfaces(*(*iter));
             iter = surfaceB.erase(iter);
             iter--; } } }
 
