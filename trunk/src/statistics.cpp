@@ -84,7 +84,7 @@ void outputSurface(list<Particle*> particles, uint t)
     
     try
     {   //  Output particle positions to outDataFile.
-        outDataFile << particles.size() << endl;
+        outDataFile << particles.size() << endl << "#" << endl;
         for (list<Particle*>::iterator iter = particles.begin(); iter != particles.end(); iter++)
         {   int numNN = 0;
             numNN = accumulate((*iter)->countN.begin(), (*iter)->countN.begin()+dissolnStates,0);
@@ -212,7 +212,9 @@ void collectStatFiles()
         for (uint t = 0; t <= tmax + 1; t += outputInterval)
         {   //  Open output file for the time step.
             sprintf(allFileName, "N=%d-t=%d.xyz", initialTotalParticles, t);
+            allFile.close();
             allFile.open(allFileName, ofstream::out);
+            if (verbose) cout << "\t" << allFileName << ":" << endl;
             if (!allFile)
             {   char err[64];
                 sprintf(err, "Unable to create file %s", allFileName);
@@ -222,6 +224,7 @@ void collectStatFiles()
             {   //  Open each input file for the time step.
                 sprintf(inFileName, "t=%d-P=%d.xyz_temp", t, i);
                 inFile.open(inFileName, ifstream::in);
+                if (verbose) cout << "\t\t" << inFileName << endl;
                 if (!inFile)
                 {   char err[64];
                     sprintf(err, "Unable to load temporary position data file %s", inFileName);

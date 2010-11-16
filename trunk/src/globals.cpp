@@ -27,8 +27,7 @@ uint    numStates,      //  Init in input.cpp loadRules()
         maxNN;          //  Init in input.cpp loadRules()
 double  T,              //  Init in input.cpp parseInput() or loadConfig()
         phi;            //  Init in input.cpp parseInput() or loadConfig()
-Reaction   *rxnA,       //  Init in input.cpp loadRules() | Freed in main.cpp main()
-           *rxnB;       //  Init in input.cpp loadRules() | Freed in main.cpp main()
+Reaction   *rxns;       //  Init in input.cpp loadRules() | Freed in main.cpp main()
 
 //  Simulation parameters.
 uint    outputInterval, //  Init in input.cpp parseInput() or loadConfig()
@@ -39,8 +38,7 @@ bool    deposition,     //  Init in input.cpp parseInput()
         recalcNN;       //  Init in input.cpp parseInput()
 
 //  Calculation variables.
-vector<vector<double> > probA;      //  Init in process.cpp calcProbs()
-vector<vector<double> > probB;      //  Init in process.cpp calcProbs()
+vector<vector<double> > probs;      //  Init in process.cpp calcProbs()
 vector<Particle>        particles;  //  Init in readxyz.cpp readXYZ()
 ParticleMap             pmap;       //  Init in neighbors.cpp fillMap()
 
