@@ -23,7 +23,6 @@ Vital
 ✗ create orthorhombic settings for ruylopez & petroff (necessary?  only a nn model)
 ✔ create vacancy defect generator
   
-  
 
 Small-scale
 ✔ incorporate better UPRNG/validation of ergodicity of rng-->convert to use Boost uniform_01
@@ -47,6 +46,7 @@ Small-scale
 Medium
 ✗ single-processor mode (MPI_PROC_NULL)
   output types beyond xyz (cfg, pdb)
+  input those types (pdb)
 ✔ test VMD or AtomEye
   dynamic temperature support
 ✔ dynamic findMaxNN()
@@ -65,3 +65,7 @@ Wishlisted
   
 Test the readXYZ() dropped particle thing to see if it's in the reading (try the 27 particles in test.xyz).
 
+Experiments:
+    Screw dissolution/growth
+    Crystal dissolution
+    Grain boundary dissolution
