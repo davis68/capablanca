@@ -35,7 +35,8 @@ using namespace std;
 extern int  rank,
             size;
 
-extern Reaction    *rxns;
+extern Reaction    *rxnA,
+                   *rxnB;
 
 extern char *progName,
             *progVers,
@@ -92,7 +93,8 @@ int main(int argc, char** argv)
     progTime += MPI_Wtime();
     if (!rank)  cout << "★ Program complete in " << progTime << " s.\n";
     
-    delete[] rxns;
+    delete[] rxnA;
+    delete[] rxnB;
     
     cout.flush();
     MPI_Finalize();

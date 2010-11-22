@@ -18,7 +18,7 @@ typedef uint            state_t;        //  the type used for a particle's curre
 typedef vector<double>  Vector;
 
 //  Input defaults.
-#define PROGRAM_VERSION "1.0.1"         //  version of this code
+#define PROGRAM_VERSION "0.9.5"         //  version of this code
 #define CONF_FILENAME   "standard.conf" //  the default configuration file name
 #define RULE_FILENAME   "rules.rs"      //  the default rule set file name
 #define DATA_FILENAME   "particles.xyz" //  the default file name of generated data

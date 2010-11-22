@@ -33,7 +33,8 @@ extern uint numStates,
 
 extern double       T,
                     phi;
-extern Reaction    *rxns;
+extern Reaction    *rxnA,
+                   *rxnB;
 
 extern uint outputInterval,
             tmax,
@@ -47,7 +48,8 @@ extern int  rank,
             size;
 
 extern ParticleMap              pmap;
-extern vector<vector<double> >  probs;
+extern vector<vector<double> >  probA;
+extern vector<vector<double> >  probB;
 
 extern list<Particle*> surfaceA;
 extern list<Particle*> surfaceB;
@@ -130,20 +132,30 @@ void process()
  *  As there are only maxNN discrete states permissible for any given
  *  temperature, pre-calculate the probabilities for each arrangement.
  *  
- *  The probabilities of transition are stored in the globally-linked variable
- *  probs, with the first index iterating over the number of states and the
- *  second index iterating over the number of neighbors (up to maxNN).
+ *  The probabilities of transition are stored in the globally-linked variables
+ *  probA and probB, with the first index iterating over the number of states
+ *  and the second index iterating over the number of neighbors (up to maxNN).
  */
 inline void calcProbs()
 {   /// Dissolution:
-    probs.resize(numStates, vector<double>(maxNN, 0.0));
+    probA.resize(numStates, vector<double>(maxNN, 0.0));
     //  Calculate values for each state and nn condition.
     for (uint i = 0; i < numStates; i++)
     {   for (uint j = 0; j < maxNN; j++)
-        {   probs[i][j] = rxns[i].prefactor
-                        * exp(-rxns[i].alpha * j * rxns[i].E_s      / (k_B * T))
-                        * exp(-rxns[i].E_r                          / (k_B * T))
-                        * exp(-rxns[i].alpha * rxns[i].z * ec * phi / (k_B * T)); } } }
+        {   probA[i][j] = rxnA[i].prefactor
+                        * exp(-rxnA[i].alpha * j * rxnA[i].E_s      / (k_B * T))
+                        * exp(-rxnA[i].E_r                          / (k_B * T))
+                        * exp(-rxnA[i].alpha * rxnA[i].z * ec * phi / (k_B * T)); } }
+    
+    /// Deposition:
+    probB.resize(numStates, vector<double>(maxNN, 0.0));
+    //  Calculate values for each state and nn condition.
+    for (uint i = 0; i < numStates; i++)
+    {   for (uint j = 0; j < maxNN; j++)
+        {   probB[i][j] = rxnB[i].prefactor
+                        * exp(rxnB[i].alpha * j * rxnB[i].E_s      / (k_B * T))
+                        * exp(-rxnB[i].E_r                         / (k_B * T))
+                        * exp(rxnB[i].alpha * rxnB[i].z * ec * phi / (k_B * T)); } } }
 
 /** findSurface()
  *  
@@ -186,16 +198,28 @@ void transitionParticle(Particle* ptr)
              newState;
     uint     numNN = accumulate(ptr->countN.begin(), ptr->countN.begin() + dissolnStates, 0);
     
-    if (!deposition && hasDissolved(ptr)) return;
-    if (uniformRand() < probs[ptr->state][numNN])
-    {   //  Set the particle states.
-        oldState    = ptr->state;
-        newState    = rxns[ptr->state].newState;
-        ptr->state  = newState;
-        
-        //  Queue the particle so that the neighbors can be updated.
-        if (ptr->onBoundary) updateBoundaryParticle(ptr, oldState, newState);
-        else                 updateInternalParticle(ptr, oldState, newState); } }
+    if (!hasDissolved(ptr))
+    {   /// Dissolution:
+        if (uniformRand() < probA[ptr->state][numNN])
+        {   //  Set the particle states.
+            oldState    = ptr->state;
+            newState    = rxnA[ptr->state].newState;
+            ptr->state  = newState;
+            
+            //  Queue the particle so that the neighbors can be updated.
+            if (ptr->onBoundary) updateBoundaryParticle(ptr, oldState, newState);
+            else                 updateInternalParticle(ptr, oldState, newState); } }
+    else
+    {   /// Deposition:
+        if (uniformRand() < probB[ptr->state][numNN])
+        {   //  Set the particle states.
+            oldState    = ptr->state;
+            newState    = rxnB[ptr->state].newState;
+            ptr->state  = newState;
+            
+            //  Queue the particle so that the neighbors can be updated.
+            if (ptr->onBoundary) updateBoundaryParticle(ptr, oldState, newState);
+            else                 updateInternalParticle(ptr, oldState, newState); } } }
 
 /** updateInternalParticle()
  *  
