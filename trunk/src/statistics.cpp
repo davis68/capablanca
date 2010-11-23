@@ -50,6 +50,7 @@ extern uint *oldParticleCount,
             *myParticleCount;
 extern Vector   rates;
 extern uint     initialTotalParticles;
+extern bool     surfaceOutput;
 
 //  Global variables
 static uint totalAtoms,
@@ -73,7 +74,11 @@ bool fileExists(char* fileName)
  *  Output a particle data to a file.
  */
 void outputSurface(list<Particle*> particles, uint t)
-{   fstream outDataFile;
+{   uint mySurfaceCount = particles.size(),
+         totalSurfaceCount = 0;
+    MPI_Reduce(&mySurfaceCount, &totalSurfaceCount, 1, MPI_UNSIGNED, MPI_SUM, 0, MPI_COMM_WORLD);
+    
+    fstream outDataFile;
     char    outDataFileName[36];
     sprintf(outDataFileName, "surface-t=%d-P=%d.xyz", t, rank);
     outDataFile.open(outDataFileName, fstream::out);
@@ -84,7 +89,7 @@ void outputSurface(list<Particle*> particles, uint t)
     
     try
     {   //  Output particle positions to outDataFile.
-        outDataFile << particles.size() << endl;
+        if (!rank) outDataFile << totalSurfaceCount << endl;
         for (list<Particle*>::iterator iter = particles.begin(); iter != particles.end(); iter++)
         {   int numNN = 0;
             numNN = accumulate((*iter)->countN.begin(), (*iter)->countN.begin()+dissolnStates,0);
@@ -221,6 +226,45 @@ void collectStatFiles()
             for (uint i = 0; i < (uint) size; i++)
             {   //  Open each input file for the time step.
                 sprintf(inFileName, "t=%d-P=%d.xyz_temp", t, i);
+                inFile.open(inFileName, ifstream::in);
+                if (!inFile)
+                {   char err[64];
+                    sprintf(err, "Unable to load temporary position data file %s", inFileName);
+                    error(err); }
+                
+                //  Copy total number of particles in this time step.
+                if (!i)
+                {   inFile >> totalParticles;
+                    allFile << totalParticles << endl;
+                    allFile << "# " << progCL << endl; }
+                
+                //  Read the contents into allFile.
+                while (!inFile.eof())
+                {   inFile >> state >> x >> y >> z;
+                    if (inFile.eof()) break;
+                    allFile << state << "\t" << x << "\t" << y << "\t" << z << endl; }
+                
+                //  Clean up.
+                inFile.close();
+                remove(inFileName); }
+            
+            if (t == tmax) t = tmax + 1 - outputInterval;
+            
+            allFile.close(); }
+        
+        if (!surfaceOutput) return;
+        for (uint t = 0; t <= tmax + 1; t += outputInterval)
+        {   //  Open output file for the time step.
+            sprintf(allFileName, "surface-t=%d.xyz", t);
+            allFile.open(allFileName, ofstream::out);
+            if (!allFile)
+            {   char err[64];
+                sprintf(err, "Unable to create file %s", allFileName);
+                error(err); }
+            
+            for (uint i = 0; i < (uint) size; i++)
+            {   //  Open each input file for the time step.
+                sprintf(inFileName, "surface-t=%d-P=%d.xyz", t, i);
                 inFile.open(inFileName, ifstream::in);
                 if (!inFile)
                 {   char err[64];
