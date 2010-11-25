@@ -205,7 +205,7 @@ void transitionParticle(Particle* ptr)
             oldState    = ptr->state;
             newState    = rxnA[ptr->state].newState;
             ptr->state  = newState;
-            
+            //FIXME:cerr << rank << ":" << ptr->id << "@" << (ptr->onBoundary ? "1" : "0" ) << endl;
             //  Queue the particle so that the neighbors can be updated.
             if (ptr->onBoundary) updateBoundaryParticle(ptr, oldState, newState);
             else                 updateInternalParticle(ptr, oldState, newState); } }
