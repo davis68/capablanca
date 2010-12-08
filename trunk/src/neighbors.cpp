@@ -59,7 +59,8 @@ vector<vector<vector<Cell> > > cells;
  *  SC is assumed.
  */
 void findMaxNN()
-{   maxNN = 0;
+{   if (maxNN) return;
+    
     //  Determine global maximum z-coordinate.
     coord_t  maxZ;
     MPI_Allreduce(&myMaxZ, &maxZ, 1, MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD);
@@ -462,7 +463,7 @@ void outputNeighbors()
  */
 void calculateNeighbors()
 {   findMaxNN();            if (verbose && !rank) cout << "  Cell geometry identified as " 
-                                                       << (maxNN == 12 ? "face-centered cubic." : (maxNN == 8 ? "body-centered cubic." : "simple cubic."))
+                                                       << (maxNN == 12 ? "face-centered cubic." : (maxNN == 8 ? "body-centered cubic." : (maxNN == 4 ? "space group Cmcm." : "simple cubic.")))
                                                        << endl;    cout.flush();
     
     if (!loadNeighbors())

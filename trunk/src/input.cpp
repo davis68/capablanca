@@ -62,7 +62,8 @@ void outputHelp()
          << "  -T ϑ              specify temperature ϑ;" << endl
          << "  -t τ              specify τ time steps to run;" << endl
          << "  -V                use verbose output;" << endl
-         << "  -v                display version information." << endl; }
+         << "  -v                display version information;" << endl
+         << "  -z Z              specify coordination number Z." << endl; }
 
 void outputVersion()
 {   cout << progName << " v" << progVers << endl; }
@@ -177,6 +178,7 @@ void parseInput(const int argc, char** argv)
     //  Set variables which will be affected by the configuration file to zero
     //  as a flag that they should be overridden if they are still zero.
     T   = 0.0;
+    maxNN = 0;
     phi = 0.0;
     outputInterval = 0;
     tmax= 0;
@@ -259,6 +261,11 @@ void parseInput(const int argc, char** argv)
                     cout.flush();
                     MPI_Finalize();
                     exit(EXIT_SUCCESS);
+                    break;
+                    
+                case 'z':   //  Coordination number specified.
+                    val = strtok(argv[i++], " ,.-");
+                    maxNN = atof(val);
                     break;
                     
                 default:    //  Unknown parameter encountered.

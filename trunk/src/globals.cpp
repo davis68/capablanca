@@ -24,7 +24,7 @@ bool    verbose;        //  Init in input.cpp parseInput()
 //  Reaction and state variables.
 uint    numStates,      //  Init in input.cpp loadRules()
         dissolnStates,  //  Init in input.cpp loadRules()
-        maxNN;          //  Init in input.cpp loadRules()
+        maxNN;          //  Init in input.cpp parseInput()
 double  T,              //  Init in input.cpp parseInput() or loadConfig()
         phi;            //  Init in input.cpp parseInput() or loadConfig()
 Reaction   *rxnA,       //  Init in input.cpp loadRules() | Freed in main.cpp main()
