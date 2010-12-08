@@ -55,6 +55,10 @@ extern bool     surfaceOutput;
 //  Global variables
 static uint totalAtoms,
             dissolnAtoms;
+static uint totalSurfaceACount,
+            mySurfaceACount,
+            totalSurfaceBCount,
+            mySurfaceBCount;
 
 /** fileExists()
  *  
@@ -161,7 +165,7 @@ void outputToFile(uint t)
             statFile << t << ",rates,";
             for (Vector::iterator iter = rates.begin(); iter != rates.end(); iter++)
             {   statFile << *iter << ","; }
-            statFile << "surfaces," << surfaceA.size() << "," << surfaceB.size() << endl;
+            statFile << "surfaces," << totalSurfaceACount << "," << totalSurfaceBCount << endl;
             
             statFile.close(); }
         
@@ -184,6 +188,12 @@ void collateStatistics(uint t)
     for (ParticleMap::iterator iter = pmap.begin(); iter != pmap.end(); iter++)
     {   myParticleCount[iter->second.state]++; }
     MPI_Reduce(myParticleCount, newParticleCount, numStates, MPI_UNSIGNED, MPI_SUM, 0, MPI_COMM_WORLD);
+    
+    //  Count the total surface area.
+    mySurfaceACount = surfaceA.size();
+    MPI_Reduce(&mySurfaceACount, &totalSurfaceACount, 1, MPI_UNSIGNED, MPI_SUM, 0, MPI_COMM_WORLD);
+    mySurfaceBCount = surfaceB.size();
+    MPI_Reduce(&mySurfaceBCount, &totalSurfaceBCount, 1, MPI_UNSIGNED, MPI_SUM, 0, MPI_COMM_WORLD);
     
     //  Get the total number of atoms in the system.
     totalAtoms   = 0;
