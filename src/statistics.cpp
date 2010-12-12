@@ -160,7 +160,7 @@ void outputToFile(uint t)
             error(err); }
         
         try
-        {   if (!t) statFile << "random seed," << ranseed << endl;
+        {   if (!t) statFile << "random seed," << ranseed << endl << progCL << endl;
             
             statFile << t << ",rates,";
             for (Vector::iterator iter = rates.begin(); iter != rates.end(); iter++)
@@ -246,7 +246,7 @@ void collectStatFiles()
                 if (!i)
                 {   inFile >> totalParticles;
                     allFile << totalParticles << endl;
-                    allFile << "# " << progCL << endl; }
+                    allFile << "# " << endl; }
                 
                 //  Read the contents into allFile.
                 while (!inFile.eof())

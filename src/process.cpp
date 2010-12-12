@@ -198,7 +198,7 @@ void transitionParticle(Particle* ptr)
              newState;
     uint     numNN = accumulate(ptr->countN.begin(), ptr->countN.begin() + dissolnStates, 0);
     
-    if (!hasDissolved(ptr))
+    if (!hasDissolved(ptr) && probA[ptr->state][numNN] != 0.0)
     {   /// Dissolution:
         if (uniformRand() < probA[ptr->state][numNN])
         {   //  Set the particle states.
@@ -209,7 +209,7 @@ void transitionParticle(Particle* ptr)
             //  Queue the particle so that the neighbors can be updated.
             if (ptr->onBoundary) updateBoundaryParticle(ptr, oldState, newState);
             else                 updateInternalParticle(ptr, oldState, newState); } }
-    else
+    else if (probB[ptr->state][numNN] != 0.0)
     {   /// Deposition:
         if (uniformRand() < probB[ptr->state][numNN])
         {   //  Set the particle states.
