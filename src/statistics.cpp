@@ -1,5 +1,5 @@
 /** statistics.cpp
- *  29 Oct 2009--21 Oct 2010
+ *  29 Oct 2009--12 Dec 2010
  *  Neal Davis
  *  
  */
@@ -50,7 +50,8 @@ extern uint *oldParticleCount,
             *myParticleCount;
 extern Vector   rates;
 extern uint     initialTotalParticles;
-extern bool     surfaceOutput;
+extern bool     surfaceOutput,
+                nnOutput;
 
 //  Global variables
 static uint totalAtoms,
@@ -95,7 +96,7 @@ void outputSurface(list<Particle*> particles, uint t)
     {   //  Output particle positions to outDataFile.
         if (!rank) outDataFile << totalSurfaceCount << endl;
         for (list<Particle*>::iterator iter = particles.begin(); iter != particles.end(); iter++)
-        {   int numNN = 0;
+        {   int numNN;
             numNN = accumulate((*iter)->countN.begin(), (*iter)->countN.begin()+dissolnStates,0);
             outDataFile << numNN << "\t" << (*iter)->x << "\t"
                         << (*iter)->y     << "\t" << (*iter)->z << endl; }
@@ -127,8 +128,14 @@ void outputToFile(uint t)
         if (!rank) outDataFile << totalAtoms << endl;
         for (ParticleMap::iterator iter = pmap.begin(); iter != pmap.end(); iter++)
         {   if (iter->second.state >= dissolnStates) continue;
-            outDataFile << iter->second.state << "\t" << iter->second.x << "\t"
-                        << iter->second.y     << "\t" << iter->second.z << endl; }
+            if (nnOutput)
+            {   int numNN;
+                numNN = accumulate(iter->second.countN.begin(), iter->second.countN.begin()+dissolnStates,0);
+                outDataFile << numNN              << "\t" << iter->second.x << "\t"
+                            << iter->second.y     << "\t" << iter->second.z << endl; }
+            else
+            {   outDataFile << iter->second.state << "\t" << iter->second.x << "\t"
+                            << iter->second.y     << "\t" << iter->second.z << endl; } }
         
         outDataFile.close(); }
     

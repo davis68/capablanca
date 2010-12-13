@@ -41,7 +41,8 @@ extern bool     deposition,
 
 extern int      rank;
 
-extern bool     surfaceOutput;
+extern bool     surfaceOutput,
+                nnOutput;
 
 void outputHelp()
 {   cout << "capablanca is a state transition machine for simulating electrochemical" << endl
@@ -54,6 +55,7 @@ void outputHelp()
          << "  -h                display this help message;" << endl
          << "  -E φ              specify potential φ;" << endl
          << "  -i Τ              specify T steps between output files;" << endl
+         << "  -N                output XYZ file as neighbor count, not state;" << endl
          << "  -n                force recalculation of nearest neighbor files;" << endl
          << "  -p DATAFILE.XYZ   specify particle position file;" << endl
          << "  -R s              specify random seed s;" << endl
@@ -160,6 +162,7 @@ void parseInput(const int argc, char** argv)
     ranseedspec = false;
     recalcNN    = false;
     surfaceOutput=false;
+    nnOutput    = false;
     
     bool    confFlag = false,
             ruleFlag = false,
@@ -214,6 +217,10 @@ void parseInput(const int argc, char** argv)
                 case 'i':   //  Output interval specified.
                     val = strtok(argv[i++], " ,.-");
                     outputInterval = atoi(val);
+                    break;
+                    
+                case 'N':   //  Output neighbor count instead of state.
+                    nnOutput = true;
                     break;
                     
                 case 'n':   //  Force recalculation of nearest neighbor list.

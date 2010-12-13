@@ -1,5 +1,5 @@
 /** process.cpp
- *  29 Oct 2009--15 Jul 2010
+ *  29 Oct 2009--12 Dec 2010
  *  Minas Charalambides and Neal Davis
  *  
  */
@@ -167,14 +167,21 @@ void findSurface()
     coord_t  minZ;
     MPI_Allreduce(&myMinZ, &minZ, 1, MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD);
     
-    //  Seed surfaceA with an initial surface particle and expand surfaces from it.
     ParticleMap::iterator mapIter;
     uint numNN;
-    for (mapIter = pmap.begin(); mapIter != pmap.end(); mapIter++)
-    {   if (abs(minZ - mapIter->second.z) > NEIGHBOR_SQUARE_CUTOFF) continue;
-        numNN = accumulate(mapIter->second.countN.begin(), mapIter->second.countN.begin() + dissolnStates, 0);
-        if (numNN < maxNN && !hasDissolved(&(mapIter->second))) break; }
-    expandSurfaces(mapIter->second); }
+    //  Stopgap for dealing with alpha-uranium due to the unlinked sheets of nn. FIXME
+    if (maxNN = 4)
+    {   for (mapIter = pmap.begin(); mapIter != pmap.end(); mapIter++)
+        {   if (abs(minZ - mapIter->second.z) > 2*NEIGHBOR_SQUARE_CUTOFF) continue;
+            numNN = accumulate(mapIter->second.countN.begin(), mapIter->second.countN.begin() + dissolnStates, 0);
+            if (numNN < maxNN && !hasDissolved(&(mapIter->second))) expandSurfaces(mapIter->second); } }
+    else
+    //  Seed surfaceA with an initial surface particle and expand surfaces from it.
+    {   for (mapIter = pmap.begin(); mapIter != pmap.end(); mapIter++)
+        {   if (abs(minZ - mapIter->second.z) > NEIGHBOR_SQUARE_CUTOFF) continue;
+            numNN = accumulate(mapIter->second.countN.begin(), mapIter->second.countN.begin() + dissolnStates, 0);
+            if (numNN < maxNN && !hasDissolved(&(mapIter->second))) break; }
+        expandSurfaces(mapIter->second); } }
 
 /** resetVariables()
  *
@@ -198,18 +205,18 @@ void transitionParticle(Particle* ptr)
              newState;
     uint     numNN = accumulate(ptr->countN.begin(), ptr->countN.begin() + dissolnStates, 0);
     
-    if (!hasDissolved(ptr) && probA[ptr->state][numNN] != 0.0)
+    if (!hasDissolved(ptr) && probA[ptr->state][numNN] >= 1e-15)
     {   /// Dissolution:
         if (uniformRand() < probA[ptr->state][numNN])
         {   //  Set the particle states.
             oldState    = ptr->state;
             newState    = rxnA[ptr->state].newState;
             ptr->state  = newState;
-            //FIXME:cerr << rank << ":" << ptr->id << "@" << (ptr->onBoundary ? "1" : "0" ) << endl;
+            
             //  Queue the particle so that the neighbors can be updated.
             if (ptr->onBoundary) updateBoundaryParticle(ptr, oldState, newState);
             else                 updateInternalParticle(ptr, oldState, newState); } }
-    else if (probB[ptr->state][numNN] != 0.0)
+    else if (probB[ptr->state][numNN] >= 1e-15)
     {   /// Deposition:
         if (uniformRand() < probB[ptr->state][numNN])
         {   //  Set the particle states.
