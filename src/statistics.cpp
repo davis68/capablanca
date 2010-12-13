@@ -1,5 +1,5 @@
 /** statistics.cpp
- *  29 Oct 2009--12 Dec 2010
+ *  29 Oct 2009--13 Dec 2010
  *  Neal Davis
  *  
  */
