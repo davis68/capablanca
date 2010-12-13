@@ -42,7 +42,9 @@ extern uint outputInterval,
 extern bool deposition,
             ranseedspec;
 
-extern coord_t myMinZ;
+extern coord_t myMinZ, myMaxZ,
+               myMinY, myMaxY,
+               myMinX, myMaxX;
 
 extern int  rank,
             size;
@@ -164,15 +166,25 @@ inline void calcProbs()
  */
 void findSurface()
 {   //  Determine global maximum z-coordinate.
-    coord_t  minZ;
+    coord_t  minZ, maxZ, minY, maxY, minX, maxX;
     MPI_Allreduce(&myMinZ, &minZ, 1, MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD);
+    MPI_Allreduce(&myMaxZ, &maxZ, 1, MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD);
+    MPI_Allreduce(&myMinY, &minY, 1, MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD);
+    MPI_Allreduce(&myMaxY, &maxY, 1, MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD);
+    MPI_Allreduce(&myMinX, &minX, 1, MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD);
+    MPI_Allreduce(&myMaxX, &maxX, 1, MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD);
     
     ParticleMap::iterator mapIter;
     uint numNN;
     //  Stopgap for dealing with alpha-uranium due to the unlinked sheets of nn. FIXME
     if (maxNN = 4)
     {   for (mapIter = pmap.begin(); mapIter != pmap.end(); mapIter++)
-        {   if (abs(minZ - mapIter->second.z) > 2*NEIGHBOR_SQUARE_CUTOFF) continue;
+        {   if (abs(minZ - mapIter->second.z) > 2*NEIGHBOR_SQUARE_CUTOFF &&
+                abs(maxZ - mapIter->second.z) > 2*NEIGHBOR_SQUARE_CUTOFF &&
+                abs(minY - mapIter->second.y) > 2*NEIGHBOR_SQUARE_CUTOFF &&
+                abs(maxY - mapIter->second.y) > 2*NEIGHBOR_SQUARE_CUTOFF &&
+                abs(minX - mapIter->second.x) > 2*NEIGHBOR_SQUARE_CUTOFF &&
+                abs(maxX - mapIter->second.x) > 2*NEIGHBOR_SQUARE_CUTOFF) continue;
             numNN = accumulate(mapIter->second.countN.begin(), mapIter->second.countN.begin() + dissolnStates, 0);
             if (numNN < maxNN && !hasDissolved(&(mapIter->second))) expandSurfaces(mapIter->second); } }
     else
