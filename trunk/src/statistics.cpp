@@ -59,7 +59,9 @@ static uint totalAtoms,
 static uint totalSurfaceACount,
             mySurfaceACount,
             totalSurfaceBCount,
-            mySurfaceBCount;
+            mySurfaceBCount,
+           *mySurfaceCount,
+           *totalSurfaceCount;
 
 /** fileExists()
  *  
@@ -172,7 +174,10 @@ void outputToFile(uint t)
             statFile << t << ",rates,";
             for (Vector::iterator iter = rates.begin(); iter != rates.end(); iter++)
             {   statFile << *iter << ","; }
-            statFile << "surfaces," << totalSurfaceACount << "," << totalSurfaceBCount << endl;
+            statFile << "concentrations,";
+            for (uint i = 0; i < maxNN; i++)
+            {   statFile << totalSurfaceCount[i] << ","; }
+            statFile << "totals," << totalSurfaceACount << "," << totalSurfaceBCount << endl;
             
             statFile.close(); }
         
@@ -202,6 +207,19 @@ void collateStatistics(uint t)
     mySurfaceBCount = surfaceB.size();
     MPI_Reduce(&mySurfaceBCount, &totalSurfaceBCount, 1, MPI_UNSIGNED, MPI_SUM, 0, MPI_COMM_WORLD);
     
+    //  Count the differential surface areas.
+    if (!t)
+    {   mySurfaceCount    = new uint[maxNN];
+        totalSurfaceCount = new uint[maxNN]; }
+    for (uint i = 0; i < maxNN; i++)
+    {   mySurfaceCount[i] = 0;
+        totalSurfaceCount[i] = 0; }
+    for (list<Particle*>::iterator iter = surfaceA.begin(); iter != surfaceA.end(); iter++)
+    {   static int numNN;
+        numNN = accumulate((*iter)->countN.begin(), (*iter)->countN.begin()+dissolnStates,0);
+        mySurfaceCount[numNN]++; }
+    MPI_Reduce(mySurfaceCount, totalSurfaceCount, maxNN, MPI_UNSIGNED, MPI_SUM, 0, MPI_COMM_WORLD);
+    
     //  Get the total number of atoms in the system.
     totalAtoms   = 0;
     dissolnAtoms = 0;
@@ -216,7 +234,12 @@ void collateStatistics(uint t)
     {   rates[i] = (double) newParticleCount[i] - (double) oldParticleCount[i]; }
     
     //  Write the system configuration and statistics to disk.
-    outputToFile(t); }
+    outputToFile(t);
+    
+    //  Clean up allocated memory.
+    if (t == tmax + 1)
+    {   delete[] mySurfaceCount;
+        delete[] totalSurfaceCount; } }
 
 /** collectStatFiles()
  *  
@@ -292,7 +315,7 @@ void collectStatFiles()
                 if (!i)
                 {   inFile >> totalParticles;
                     allFile << totalParticles << endl;
-                    allFile << "# " << progCL << endl; }
+                    allFile << "# " << endl; }
                 
                 //  Read the contents into allFile.
                 while (!inFile.eof())
