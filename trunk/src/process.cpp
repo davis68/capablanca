@@ -219,7 +219,7 @@ void transitionParticle(Particle* ptr)
     
     if (!hasDissolved(ptr) && probA[ptr->state][numNN] >= 1e-15)
     {   /// Dissolution:
-        if (uniformRand() < probA[ptr->state][numNN])
+        if (probA[ptr->state][numNN] >= 1.0 or uniformRand() < probA[ptr->state][numNN])
         {   //  Set the particle states.
             oldState    = ptr->state;
             newState    = rxnA[ptr->state].newState;
@@ -230,7 +230,7 @@ void transitionParticle(Particle* ptr)
             else                 updateInternalParticle(ptr, oldState, newState); } }
     else if (probB[ptr->state][numNN] >= 1e-15)
     {   /// Deposition:
-        if (uniformRand() < probB[ptr->state][numNN])
+        if (probB[ptr->state][numNN] >= 1.0 or uniformRand() < probB[ptr->state][numNN])
         {   //  Set the particle states.
             oldState    = ptr->state;
             newState    = rxnB[ptr->state].newState;
