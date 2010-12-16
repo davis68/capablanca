@@ -177,7 +177,7 @@ void findSurface()
     ParticleMap::iterator mapIter;
     uint numNN;
     //  Stopgap for dealing with alpha-uranium due to the unlinked sheets of nn. FIXME
-    if (maxNN = 4)
+    if (maxNN == 4)
     {   for (mapIter = pmap.begin(); mapIter != pmap.end(); mapIter++)
         {   if (abs(minZ - mapIter->second.z) > 2*NEIGHBOR_SQUARE_CUTOFF &&
                 abs(maxZ - mapIter->second.z) > 2*NEIGHBOR_SQUARE_CUTOFF &&
