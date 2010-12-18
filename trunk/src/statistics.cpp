@@ -216,6 +216,7 @@ void collateStatistics(uint t)
         totalSurfaceCount[i] = 0; }
     for (list<Particle*>::iterator iter = surfaceA.begin(); iter != surfaceA.end(); iter++)
     {   static int numNN;
+        if ((*iter)->state != 0) continue;
         numNN = accumulate((*iter)->countN.begin(), (*iter)->countN.begin()+dissolnStates,0);
         mySurfaceCount[numNN]++; }
     MPI_Reduce(mySurfaceCount, totalSurfaceCount, maxNN, MPI_UNSIGNED, MPI_SUM, 0, MPI_COMM_WORLD);
