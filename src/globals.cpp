@@ -39,6 +39,7 @@ bool    deposition,     //  Init in input.cpp parseInput()
         recalcNN;       //  Init in input.cpp parseInput()
 
 //  Calculation variables.
+bool                    fullSurface;//  Init in input.cpp parseInput()
 vector<vector<double> > probA;      //  Init in process.cpp calcProbs()
 vector<vector<double> > probB;      //  Init in process.cpp calcProbs()
 vector<Particle>        particles;  //  Init in readxyz.cpp readXYZ()

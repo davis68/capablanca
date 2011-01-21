@@ -24,6 +24,7 @@ extern char    *progName,
                *dataFileName;
 extern bool     verbose;
 
+extern bool     fullSurface;
 extern uint     numStates,
                 dissolnStates,
                 maxNN;
@@ -60,6 +61,7 @@ void outputHelp()
          << "  -p DATAFILE.XYZ   specify particle position file;" << endl
          << "  -R s              specify random seed s;" << endl
          << "  -r RULE_SET.RS    specify rule set file;" << endl
+         << "  -S                force full surface calculation;" << endl
          << "  -s                output surface at each time step as well;" << endl
          << "  -T ϑ              specify temperature ϑ;" << endl
          << "  -t τ              specify τ time steps to run;" << endl
@@ -158,6 +160,7 @@ void parseInput(const int argc, char** argv)
     ruleFileName= new char[32];
     dataFileName= new char[32];
     verbose     = false;
+    fullSurface = false;
     deposition  = true;
     ranseedspec = false;
     recalcNN    = false;
@@ -243,6 +246,10 @@ void parseInput(const int argc, char** argv)
                     val = strtok(argv[i++], " ,");
                     ruleFileName = val;
                     ruleFlag = true;
+                    break;
+                    
+                case 'S':   //  Full surface detection desired.
+                    fullSurface = true;
                     break;
                     
                 case 's':   //  Output the surface.
