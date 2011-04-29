@@ -1,0 +1,40 @@
+#summary Overview of command-line options of capablanca.
+
+= Introduction =
+
+Add your content here.
+
+
+= Details =
+
+Add your content here.  Format your content with:
+  * Text in *bold* or _italic_
+  * Headings, paragraphs, and lists
+  * Automatic links to other wiki pages
+\begin{table}
+        \caption[Options for use with \texttt{capablanca}]{Options for use with \texttt{capablanca}.  Several of these are intended for debugging usage only.}
+        \label{table:capablanca_ops}
+        \centering
+        \begin{tabular} {l p{0.6 \textwidth}}
+            \hline \hline
+            Option                    & Description \\ \hline
+            \texttt{-c CONFIG.CFG}    & specify configuration file \\
+            \texttt{-C}               & make problem cyclical in $x$- and $y$-directions \\
+            \texttt{-d}               & suppress deposition \\
+            \texttt{-h}               & display this help message \\
+            \texttt{-E $\varphi$}     & specify potential $\varphi$ \\
+            \texttt{-i $T$}           & specify $T$ steps between output files \\
+            \texttt{-N}               & output XYZ file with neighbor count, not state \\
+            \texttt{-n}               & force recalculation of nearest neighbors \\
+            \texttt{-p DATAFILE.XYZ}  & specify particle position file \\
+            \texttt{-R $s$}           & specify random seed $s$ \\
+            \texttt{-r RULE\_SET.RS}  & specify rule set file \\
+            \texttt{-S}               & force full surface calculation \\
+            \texttt{-s}               & output surface at each time step as well \\
+            \texttt{-T $\vartheta$}   & specify temperature $\vartheta$ \\
+            \texttt{-t $\tau$}        & specify $\tau$ time steps to run \\
+            \texttt{-V}               & use verbose output \\
+            \texttt{-v}               & display version information \\
+            \texttt{-z $Z$}           & specify coordination number $Z$ \\
+        \end{tabular}
+    \end{table}
