@@ -1,0 +1,38 @@
+#summary Overview of usage of ruylopez and other tools.
+
+= Introduction =
+`ruylopez`, `petroff`, and `polgar` are sequential programs which provide crystal structures for use in `capablanca`.  They are written in C++.
+
+They have been tested with the Ubuntu (Lucid Lynx and later) and Fedora 11 GNU/Linux operating systems.
+
+= Running `ruylopez` =
+Usage is as `ruylopez [OPTION] ...` where the options are shown in the following table.
+|| Option || Description ||
+|| `-c CONFIG.CFG` || specify configuration file ||
+|| `-C` || make problem cyclical in _x_- and _y_-directions ||
+|| `-d` || suppress deposition ||
+|| `-h` || display this help message ||
+|| `-E `_P_ || specify potential _P_ ||
+|| `-i `_T_ || specify _T_ steps between output files ||
+|| `-N` || output XYZ file with neighbor count, not state ||
+|| `-n` || force recalculation of nearest neighbors ||
+|| `-p DATAFILE.XYZ` || specify particle position file ||
+|| `-R `_s_ || specify random seed _s_ ||
+|| `-r RULE_SET.RS` || specify rule set file ||
+|| `-S` || force full surface calculation ||
+|| `-s` || output surface at each time step as well ||
+|| `-T `_t_ || specify temperature _t_ ||
+|| `-t `_a_ || specify _a_ time steps to run ||
+|| `-V` || use verbose output ||
+|| `-v` || display version information ||
+|| `-z `_Z_ || specify coordination number _Z_ ||
+
+The output file is in the `xyz` file format, which specifies that the number of particles in the file be on the first line with each tab-delimited succeeding line consisting of an identifier and the _x_-, _y_-, and _z_-coordinates of that particle.
+
+The configuration file consists of 
+
+= Running `petroff` =
+Usage is as `ruylopez [OPTION] ...` where the options are shown in the following table.
+
+= Running `polgar` =
+Usage is as `ruylopez [OPTION] ...` where the options are shown in the following table.
