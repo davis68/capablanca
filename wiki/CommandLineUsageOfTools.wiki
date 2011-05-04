@@ -6,7 +6,7 @@
 They have been tested with the Ubuntu (Lucid Lynx and later) and Fedora 11 GNU/Linux operating systems.
 
 = Running `ruylopez` =
-Usage is as `ruylopez T N [t p] i` where the options are shown in the following table.  The extension in each dimension is specificed in the configuration file `grain.conf`.
+`ruylopez` generates a grain boundary between two crystals.  Usage is as `ruylopez T N [t p] i` where the options are shown in the following table.  The extension in each dimension is specificed in the configuration file `grain.conf`.
 || Option || Description ||
 || `-c CONFIG.CFG` || specify configuration file ||
 || `T`  || orientation type (0 - fcc; 1 - bcc; 2 - sc) ||
@@ -21,14 +21,14 @@ The output file is in the `xyz` file format, which specifies that the number of 
 The configuration file consists of three lines indicating the number of units extending in the _x_, _y_, and _z_ directions.
 
 = Running `petroff` =
-Usage is as `petroff T N` where the options are shown in the following table.  (The spacing in the screw portion is still undesirable.)
+`petroff` generates a screw dislocation in a crystal (with as-yet-unsatisfactory results).  Usage is as `petroff T N` where the options are shown in the following table.  (The spacing in the screw portion is still undesirable.)
 || Option || Description ||
 || `T`  || orientation type (0 - fcc; 1 - bcc; 2 - sc) ||
 || `N`  || number of layers to generate ||
 || `V`  || vacancy defect concentration in units of 1e6 ||
 
 = Running `polgar` =
-Usage is as `polgar T x y z p t [V]` where the options are shown in the following table.
+`polgar` generates a crystal face surrounded by inert material on the edges, thereby exposing only a single face to dissolution and allowing face-specific rates to be studied.  Usage is as `polgar T x y z p t [V]` where the options are shown in the following table.
 || Option || Description ||
 || `T`  || orientation type (0 - fcc; 1 - bcc; 2 - sc) ||
 || `x`  || extension in _x_ direction ||
