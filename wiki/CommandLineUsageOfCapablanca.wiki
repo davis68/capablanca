@@ -13,7 +13,7 @@ Usage is as `capablanca [OPTION] ...` where the options are shown in the followi
 || `-c CONFIG.CFG` || specify configuration file ||
 || `-C` || make problem cyclical in _x_- and _y_-directions ||
 || `-d` || suppress deposition ||
-|| `-h` || display this help message ||
+|| `-h` || display a help message ||
 || `-E `_P_ || specify potential _P_ ||
 || `-i `_T_ || specify _T_ steps between output files ||
 || `-N` || output XYZ file with neighbor count, not state ||
