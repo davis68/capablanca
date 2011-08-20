@@ -37,3 +37,6 @@ The configuration file consists of three lines indicating the number of units ex
 || `t`  || angle from _yz_ plane for grain in units of pi ||
 || `p`  || angle from _xy_ plane for grain in units of pi ||
 || `V`  || vacancy defect concentration in units of 1e6 ||
+
+= Alternative methods of generating data =
+Aten is an atomic layout editor introduced in 2010 ("Aten - An application for the creation, editing, and visualization of coordinates for glasses, liquids, crystals, and molecules", T. G. A. Youngs, _J. Comp. Chem. 31_, 639--648, (2009)).  Using this editor's unit cell replication features, raw data for `capablanca` can be easily generated.  Aten can be downloaded at [http://www.projectaten.net/ Project Aten].  I'll post more information as I continue to work with it.
